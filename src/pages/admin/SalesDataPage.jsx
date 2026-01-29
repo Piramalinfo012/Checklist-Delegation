@@ -51,7 +51,6 @@ const getTaskStatus = (
     return "Done";
   }
 
-  // Check if task is from today or yesterday (for specific users only)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const taskDate = parseDateFromDDMMYYYY(taskStartDate);
@@ -59,32 +58,9 @@ const getTaskStatus = (
   if (taskDate) {
     taskDate.setHours(0, 0, 0, 0);
 
-    // List of users who get 1-day grace period
-    const usersWithGracePeriod = [
-      "ARCHANA DAY",
-      "AMITA, POONIYA",
-      "INDRAJEET",
-    ].map((name) => name.toUpperCase());
-
-    const assignedToUpper = assignedTo ? assignedTo.trim().toUpperCase() : "";
-
-    // Check if user is in the grace period list
-    if (usersWithGracePeriod.includes(assignedToUpper)) {
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-
-      const taskDateStr = taskDate.getTime();
-      const todayStr = today.getTime();
-      const yesterdayStr = yesterday.getTime();
-
-      if (taskDateStr !== todayStr && taskDateStr !== yesterdayStr) {
-        return "Disabled"; // Overdue task (more than 2 days old)
-      }
-    } else {
-      // For all other users: normal logic (only today's tasks)
-      if (taskDate.getTime() !== today.getTime()) {
-        return "Disabled"; // Overdue task
-      }
+    // Check if task is strictly in the past
+    if (taskDate.getTime() < today.getTime()) {
+      return "Overdue";
     }
   }
 
@@ -97,7 +73,7 @@ const getStatusColor = (status) => {
       return "bg-green-100 text-green-800";
     case "Admin Done":
       return "bg-blue-100 text-blue-800";
-    case "Disabled":
+    case "Overdue":
       return "bg-red-600 text-white"; // Changed to blood red background with white text
     case "Pending":
       return "bg-orange-100 text-black";
@@ -131,8 +107,8 @@ const MemoizedTaskRow = memo(({
   onImageUpload
 }) => {
   const taskStatus = getTaskStatus(account["col10"], account["col15"], account["col6"], account["col4"]);
-  const isDisabled = taskStatus === "Admin Done" || taskStatus === "Done" || taskStatus === "Disabled";
-  const isNotToday = taskStatus === "Disabled";
+  const isDisabled = taskStatus === "Admin Done" || taskStatus === "Done";
+  const isNotToday = taskStatus === "Overdue";
 
   return (
     <tr
@@ -154,7 +130,7 @@ const MemoizedTaskRow = memo(({
       </td>
       <td className="px-3 py-4 min-w-[80px]">
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(taskStatus)}`}>
-          {taskStatus === "Disabled" ? "Overdue" : taskStatus}
+          {taskStatus}
         </span>
       </td>
       {/* Keep all other existing td elements with the same text color logic */}

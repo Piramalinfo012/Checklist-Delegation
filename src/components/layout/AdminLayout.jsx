@@ -99,11 +99,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       showFor: ["admin", "user"] // Show for both roles
     },
     {
-      href: "#",
-      label: "Data",
+      href: "/dashboard/data/sales",
+      label: "Checklist",
       icon: Database,
-      active: location.pathname.includes("/dashboard/data"),
-      submenu: true,
+      active: location.pathname === "/dashboard/data/sales",
       showFor: ["admin", "user"] // Show for both roles
     },
 
@@ -531,8 +530,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center justify-between border-b border-blue-200 bg-white px-4 md:px-6">
           <div className="flex md:hidden w-8"></div>
-          <h1 className="text-xs sm:text-sm md:text-xl font-bold flex items-center gap-1 md:gap-2 flex-1 overflow-hidden min-w-0">
-            <span className="truncate block" style={{
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <span style={{
               background: 'linear-gradient(to right, #9333EA, #DB2777)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -545,7 +544,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                 if (hour >= 12 && hour < 18) greeting = "Good Afternoon"
                 else if (hour >= 18) greeting = "Good Evening"
 
-                return `${greeting}, ${username ? username.toUpperCase() : "USER"}`
+                return `${greeting}, ${username ? username.toUpperCase() : "USER"}! Welcome On Board`
               })()}
             </span>
             <span className="animate-bounce inline-block">👋</span>
