@@ -107,11 +107,9 @@ export default function AdminDashboard() {
 
         // Try to get profile image from master sheet Column H (index 7) first
         const masterImageUrl = getCellValue(userRow, 7); // Column H (index 7) - Image URL in master sheet
-        console.log("Profile Image URL from Master Sheet Column H:", masterImageUrl);
 
         if (masterImageUrl) {
           const displayableUrl = getDisplayableImageUrl(masterImageUrl);
-          console.log("Converted Thumbnail URL from Master Sheet:", displayableUrl);
           setUserProfileImage(displayableUrl);
           return; // Exit early since we found image in master sheet
         }

@@ -70,25 +70,31 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       showFor: ["admin", "user"] // Show for both roles
     },
     {
-      href: "/dashboard/quick-task",
-      label: "Quick Task",
-      icon: Zap,
-      active: location.pathname === "/dashboard/quick-task",
+      href: "/dashboard/delegation",
+      label: "Delegation",
+      icon: ClipboardList,
+      active: location.pathname === "/dashboard/delegation",
       showFor: ["admin", "user"] // Only show for admin
+    },
+    {
+      href: "/dashboard/data/sales",
+      label: "Checklist",
+      icon: Database,
+      active: location.pathname === "/dashboard/data/sales",
+      showFor: ["admin", "user"] // Show for both roles
     },
     {
       href: "/dashboard/assign-task",
       label: "Assign Task",
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
-      showFor: ["admin", "user"] // Only show for admin
+      showFor: ["admin"] // Only show for admin
     },
-
     {
-      href: "/dashboard/delegation",
-      label: "Delegation",
-      icon: ClipboardList,
-      active: location.pathname === "/dashboard/delegation",
+      href: "/dashboard/quick-task",
+      label: "Unique Task",
+      icon: Zap,
+      active: location.pathname === "/dashboard/quick-task",
       showFor: ["admin", "user"] // Only show for admin
     },
     {
@@ -99,21 +105,12 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       showFor: ["admin", "user"] // Show for both roles
     },
     {
-      href: "/dashboard/data/sales",
-      label: "Checklist",
-      icon: Database,
-      active: location.pathname === "/dashboard/data/sales",
-      showFor: ["admin", "user"] // Show for both roles
-    },
-
-    {
       href: "/dashboard/license",
       label: "License",
       icon: KeyRound,
       active: location.pathname === "/dashboard/license",
       showFor: ["admin", "user"] // show both
     },
-
     {
       href: "/dashboard/traning-video",
       label: "Training Video",
@@ -532,6 +529,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
           <div className="flex md:hidden w-8"></div>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <span style={{
+              textAlign: "center",
               background: 'linear-gradient(to right, #9333EA, #DB2777)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',

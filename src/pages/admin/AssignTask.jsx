@@ -342,11 +342,6 @@ export default function AssignTask() {
       setGivenByOptions([...new Set(givenBy)].sort());
       setDoerOptions([...new Set(doers)].sort());
 
-      console.log("Master sheet options loaded successfully", {
-        departments: [...new Set(departments)],
-        givenBy: [...new Set(givenBy)],
-        doers: [...new Set(doers)],
-      });
     } catch (error) {
       console.error("Error fetching master sheet options:", error);
       // Set default options if fetch fails
@@ -457,7 +452,6 @@ export default function AssignTask() {
         const userRole = sessionStorage.getItem("role");
         const username = sessionStorage.getItem("username");
 
-        console.log("Current user details:", { userRole, username });
 
         // Fetch all doers first
         const masterSheetName = "master";
@@ -481,8 +475,6 @@ export default function AssignTask() {
             if (value !== "") allDoers.push(value);
           }
         });
-
-        console.log("All doers from sheet:", allDoers);
 
         // Filter based on user role
         let filteredDoers;
@@ -525,9 +517,6 @@ export default function AssignTask() {
           selectedDoer = username || "Default User";
         }
 
-        console.log("Filtered doers:", filteredDoers);
-        console.log("Selected doer for prefetch:", selectedDoer);
-
         setDoerOptions(filteredDoers);
 
         // Always prefetch for non-admin users
@@ -536,7 +525,6 @@ export default function AssignTask() {
             ...prev,
             doer: selectedDoer,
           }));
-          console.log("Prefetched doer field with:", selectedDoer);
         }
       } catch (error) {
         console.error("Error fetching doer options:", error);
@@ -553,7 +541,6 @@ export default function AssignTask() {
             ...prev,
             doer: fallbackName,
           }));
-          console.log("Fallback: Prefetched doer field with:", fallbackName);
         }
       }
     };

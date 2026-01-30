@@ -45,9 +45,6 @@ export default function QuickTask() {
       // Get user data from your login system (sessionStorage)
       const loggedInUsername = sessionStorage.getItem('username');
 
-      console.log("Session data found:");
-      console.log("Username from session:", loggedInUsername);
-
       if (!loggedInUsername) {
         throw new Error("No user logged in. Please log in to access tasks.");
       }
@@ -81,7 +78,6 @@ export default function QuickTask() {
         if (foundUser) {
           setCurrentUser(foundUser.name);
           setUserRole(foundUser.role);
-          console.log("User found in Whatsapp sheet:", foundUser);
         } else {
           throw new Error(`User "${loggedInUsername}" not found in Whatsapp sheet. Please contact administrator.`);
         }
@@ -131,7 +127,6 @@ export default function QuickTask() {
           return item.Name && item['Task Description'];
         });
 
-        console.log(`Total checklist tasks before uniqueness filter:`, transformedData.length);
 
         // Create unique tasks based on Name + Task Description combination
         const uniqueTasksMap = new Map();
@@ -143,15 +138,12 @@ export default function QuickTask() {
         });
 
         const uniqueTasks = Array.from(uniqueTasksMap.values());
-        console.log(`Unique tasks after filtering:`, uniqueTasks.length);
-        console.log("User role:", userRole, "Current user:", currentUser);
 
         // Apply role-based filtering
         let filteredData;
         if (userRole === 'admin') {
           // Admin sees all unique tasks
           filteredData = uniqueTasks;
-          console.log("Admin access: showing all unique checklist tasks");
         } else {
           // Regular user sees only their tasks (where Name matches current user)
           filteredData = uniqueTasks.filter(item => {
@@ -160,7 +152,6 @@ export default function QuickTask() {
 
             return itemName === currentUserLower;
           });
-          console.log(`User access: filtered checklist tasks for ${currentUser}:`, filteredData.length);
         }
 
         setTasks(filteredData);
@@ -206,14 +197,11 @@ export default function QuickTask() {
           return baseData;
         });
 
-        console.log(`Total delegation tasks:`, transformedData.length);
-
         // Apply role-based filtering (unchanged from original)
         let filteredData;
         if (userRole === 'admin') {
           // Admin sees all tasks
           filteredData = transformedData;
-          console.log("Admin access: showing all delegation tasks");
         } else {
           // Regular user sees only their tasks
           filteredData = transformedData.filter(item => {
@@ -226,7 +214,6 @@ export default function QuickTask() {
 
             return isAssignedToUser || isGivenByUser;
           });
-          console.log(`User access: filtered delegation tasks for ${currentUser}:`, filteredData.length);
         }
 
         setDelegationTasks(filteredData);
@@ -356,7 +343,6 @@ export default function QuickTask() {
   // Fetch task data when user is loaded
   useEffect(() => {
     if (currentUser && userRole && !userLoading) {
-      console.log("Fetching data for user:", currentUser, "with role:", userRole);
       fetchChecklistData();
       fetchDelegationData();
     }

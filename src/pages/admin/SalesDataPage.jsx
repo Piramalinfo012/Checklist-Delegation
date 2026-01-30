@@ -88,7 +88,7 @@ const getSubmissionStatus = (actualDate, delayColumn) => {
   const delayNotNull = !isEmpty(delayColumn)
 
   if (actualNotNull && delayNotNull) {
-    return { status: 'Late Submitted', color: 'red' }
+    return { status: 'Submitted', color: 'green' }
   } else if (actualNotNull && !delayNotNull) {
     return { status: 'On time', color: 'green' }
   } else {
@@ -112,9 +112,9 @@ const MemoizedTaskRow = memo(({
 
   return (
     <tr
-      className={`${isSelected ? "bg-purple-50" : ""} ${isNotToday ? "bg-white border-l-4 border-red-600" : "hover:bg-gray-50"} ${isDisabled ? "opacity-90 cursor-not-allowed" : ""}`}
+      className={`group ${isSelected ? "bg-purple-50" : ""} ${isNotToday ? "bg-white border-l-4 border-red-600" : "hover:bg-gray-50"} ${isDisabled ? "opacity-90 cursor-not-allowed" : ""}`}
     >
-      <td className="px-3 py-4 w-12">
+      <td className={`px-3 py-4 w-12 sticky left-0 z-30 ${isSelected ? "bg-purple-50" : isNotToday ? "bg-white" : "bg-white group-hover:bg-gray-50"}`}>
         <input
           type="checkbox"
           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
@@ -123,7 +123,7 @@ const MemoizedTaskRow = memo(({
           disabled={isDisabled}
         />
       </td>
-      <td className="px-3 py-4 min-w-[100px]">
+      <td className={`px-3 py-4 w-20 sticky left-12 z-30 ${isSelected ? "bg-purple-50" : isNotToday ? "bg-white" : "bg-white group-hover:bg-gray-50"}`}>
         <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"}`}>
           {account["col1"] || "—"}
         </div>
@@ -154,7 +154,7 @@ const MemoizedTaskRow = memo(({
           disabled={!isSelected}
           value={additionalData || ""}
           onChange={(e) => onAdditionalDataChange(account._id, e.target.value)}
-          className={`border border-gray-300 rounded-md px-2 py-1 w-full ${isNotToday ? "text-red-600" : "text-black"} disabled:bg-gray-100 disabled:cursor-not-allowed text-sm font-medium`}
+          className={`border border-gray-300 rounded-md px-2 py-1 w-full ${isNotToday ? "text-red-600" : "text-black"} disabled:bg-gray-100 disabled:cursor-not-allowed text-sm font-medium ${isDisabled ? "opacity-50" : ""}`}
         >
           <option value="">Select...</option>
           <option value="Yes">Yes</option>
@@ -168,16 +168,16 @@ const MemoizedTaskRow = memo(({
           disabled={!isSelected || !additionalData}
           value={remarksData || ""}
           onChange={(e) => onRemarksChange(account._id, e.target.value)}
-          className={`border rounded-md px-2 py-1 w-full border-gray-300 ${isNotToday ? "placeholder" : ""} disabled:bg-gray-100 disabled:cursor-not-allowed text-sm break-words font-medium`}
+          className={`border rounded-md px-2 py-1 w-full border-gray-300 ${isNotToday ? "placeholder" : ""} disabled:bg-gray-100 disabled:cursor-not-allowed text-sm break-words font-medium ${isDisabled ? "opacity-50" : ""}`}
         />
       </td>
       <td className="px-3 py-4 min-w-[200px]">
-        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"}`} title={account["col5"]}>
+        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"} ${isDisabled ? "opacity-50" : ""}`} title={account["col5"]}>
           {account["col5"] || "—"}
         </div>
       </td>
       <td className={`px-3 py-4 ${isNotToday ? "bg-white border-l-4 border-white" : "hover:bg-gray-50"} min-w-[140px]`}>
-        <div className={`text-sm break-words ${isNotToday ? "text-red-600" : "text-gray-900"}`}>
+        <div className={`text-sm break-words ${isNotToday ? "text-red-600" : "text-gray-900"} ${isDisabled ? "opacity-50" : ""}`}>
           {account["col6"] ? (
             <div>
               <div className="font-medium break-words">
@@ -195,23 +195,23 @@ const MemoizedTaskRow = memo(({
         </div>
       </td>
       <td className="px-3 py-4 min-w-[80px]">
-        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"}`}>
+        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"} ${isDisabled ? "opacity-50" : ""}`}>
           {account["col7"] || "—"}
         </div>
       </td>
       <td className="px-3 py-4 min-w-[120px]">
-        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"}`}>
+        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"} ${isDisabled ? "opacity-50" : ""}`}>
           {account["col8"] || "—"}
         </div>
       </td>
       <td className="px-3 py-4 min-w-[120px]">
-        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"}`}>
+        <div className={`text-sm break-words font-medium ${isNotToday ? "text-red-600" : "text-gray-900"} ${isDisabled ? "opacity-50" : ""}`}>
           {account["col9"] || "—"}
         </div>
       </td>
       <td className="px-3 py-4 bg-green-50 min-w-[120px]">
         {account.image ? (
-          <div className="flex items-center">
+          <div className={`flex items-center ${isDisabled ? "opacity-50" : ""}`}>
             <img
               src={
                 typeof account.image === "string"
@@ -239,7 +239,7 @@ const MemoizedTaskRow = memo(({
           </div>
         ) : (
           <label
-            className={`flex items-center cursor-pointer ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 font-medium" : "text-purple-600"} hover:text-purple-800`}
+            className={`flex items-center cursor-pointer ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 font-medium" : "text-purple-600"} hover:text-purple-800 ${isDisabled ? "opacity-50" : ""}`}
           >
             <Upload className="h-4 w-4 mr-1 flex-shrink-0" />
             <span className="text-xs break-words font-medium">
@@ -870,8 +870,6 @@ function AccountDataPage() {
       const yesterday = new Date(today)
       yesterday.setDate(today.getDate() - 1)
       const yesterdayStr = formatDateToDDMMYYYY(yesterday)
-
-      console.log("Filtering dates:", { todayStr, tomorrowStr, yesterdayStr })
 
       const membersSet = new Set()
       let rows = []
@@ -2166,11 +2164,11 @@ function AccountDataPage() {
           ) : (
             <>
               {/* Desktop Table View */}
-              <div className="hidden sm:block h-[calc(100vh-250px)] overflow-auto">
+              <div className=" h-[calc(100vh-250px)] overflow-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
+                  <thead className="bg-gray-50 sticky top-0 z-40">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 sticky left-0 z-50 bg-gray-50">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
@@ -2205,7 +2203,7 @@ function AccountDataPage() {
                           onChange={handleSelectAllItems}
                         />
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sticky left-12 z-50 bg-gray-50">
                         Task ID
                       </th>
                       {/* Status Column Header */}
@@ -2306,330 +2304,6 @@ function AccountDataPage() {
                 </table>
               </div>
 
-              {/* Mobile Card View for Regular Tasks */}
-              <div className="sm:hidden space-y-4 p-4 max-h-[calc(100vh-250px)] overflow-auto">
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-700">
-                      Select All:
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                      checked={
-                        // Only consider enabled items for select all
-                        filteredAccountData.filter((item) => {
-                          const taskStatus = getTaskStatus(
-                            item["col10"],
-                            item["col15"],
-                            item["col6"]
-                          );
-                          return (
-                            taskStatus !== "Admin Done" &&
-                            taskStatus !== "Done" &&
-                            taskStatus !== "Disabled"
-                          );
-                        }).length > 0 &&
-                        selectedItems.size ===
-                        filteredAccountData.filter((item) => {
-                          const taskStatus = getTaskStatus(
-                            item["col10"],
-                            item["col15"],
-                            item["col6"]
-                          );
-                          return (
-                            taskStatus !== "Admin Done" &&
-                            taskStatus !== "Done" &&
-                            taskStatus !== "Disabled"
-                          );
-                        }).length
-                      }
-                      onChange={handleSelectAllItems}
-                    />
-                  </div>
-                </div>
-                {displayedAccountData.length > 0 ? (
-                  displayedAccountData.map((account) => {
-                    const isSelected = selectedItems.has(account._id);
-                    const taskStatus = getTaskStatus(
-                      account["col10"],
-                      account["col15"],
-                      account["col6"]
-                    );
-                    const isDisabled =
-                      taskStatus === "Admin Done" ||
-                      taskStatus === "Done" ||
-                      taskStatus === "Disabled";
-
-                    return (
-                      <div
-                        key={account._id}
-                        className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm ${isSelected ? "bg-purple-50 border-purple-200" : ""
-                          } ${isDisabled ? "opacity-90" : ""}`}
-                      >
-                        <div className="space-y-3">
-                          {/* Checkbox */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Select:
-                            </span>
-                            <input
-                              type="checkbox"
-                              className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                              checked={isSelected}
-                              onChange={(e) =>
-                                handleCheckboxClick(e, account._id)
-                              }
-                              disabled={isDisabled}
-                            />
-                          </div>
-
-                          {/* Task ID */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Task ID:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col1"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Status */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Status:
-                            </span>
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                                taskStatus
-                              )}`}
-                            >
-                              {taskStatus === "Disabled"
-                                ? "Overdue"
-                                : taskStatus}
-                            </span>
-                          </div>
-
-                          {/* Department Name */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Department:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col2"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Given By */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Given By:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col3"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Name */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Name:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col4"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Task Description */}
-                          <div className="flex justify-between items-start border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Description:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words text-right max-w-[60%] font-medium">
-                              {account["col5"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Task Start Date */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Start Date:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words text-right">
-                              {account["col6"] ? (
-                                <div>
-                                  <div className="font-medium break-words">
-                                    {account["col6"].includes(" ")
-                                      ? account["col6"].split(" ")[0]
-                                      : account["col6"]}
-                                  </div>
-                                  {account["col6"].includes(" ") && (
-                                    <div className="text-xs text-gray-500 break-words">
-                                      {account["col6"].split(" ")[1]}
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                "—"
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Freq */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Frequency:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col7"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Enable Reminders */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Reminders:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col8"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Require Attachment */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Attachment Required:
-                            </span>
-                            <div className="text-sm text-gray-900 break-words font-medium">
-                              {account["col9"] || "—"}
-                            </div>
-                          </div>
-
-                          {/* Status Dropdown */}
-                          <div className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Status:
-                            </span>
-                            <select
-                              disabled={!isSelected || isDisabled}
-                              value={additionalData[account._id] || ""}
-                              onChange={(e) =>
-                                handleAdditionalDataChange(
-                                  account._id,
-                                  e.target.value
-                                )
-                              }
-                              className="border border-gray-300 rounded-md px-2 py-1 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm font-medium"
-                            >
-                              <option value="">Select...</option>
-                              <option value="Yes">Yes</option>
-                              <option value="No">No</option>
-                            </select>
-                          </div>
-
-                          {/* Remarks */}
-                          <div className="flex justify-between items-start border-b pb-2">
-                            <span className="font-medium text-gray-700">
-                              Remarks:
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="Enter remarks"
-                              disabled={
-                                !isSelected ||
-                                !additionalData[account._id] ||
-                                isDisabled
-                              }
-                              value={remarksData[account._id] || ""}
-                              onChange={(e) =>
-                                handleRemarksChange(account._id, e.target.value)
-                              }
-                              className="border rounded-md px-2 py-1 border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm break-words w-32 font-medium"
-                            />
-                          </div>
-
-                          {/* Upload Image */}
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium text-gray-700">
-                              Attachment:
-                            </span>
-                            {account.image ? (
-                              <div className="flex items-center">
-                                <img
-                                  src={
-                                    typeof account.image === "string"
-                                      ? account.image
-                                      : URL.createObjectURL(account.image)
-                                  }
-                                  alt="Receipt"
-                                  className="h-10 w-10 object-cover rounded-md mr-2 flex-shrink-0"
-                                />
-                                <div className="flex flex-col">
-                                  <span className="text-xs text-gray-500 break-words">
-                                    {account.image instanceof File
-                                      ? account.image.name
-                                      : "Uploaded"}
-                                  </span>
-                                  {account.image instanceof File ? (
-                                    <span className="text-xs text-green-600 font-medium">
-                                      Ready to upload
-                                    </span>
-                                  ) : (
-                                    <button
-                                      className="text-xs text-purple-600 hover:text-purple-800 break-words font-medium"
-                                      onClick={() =>
-                                        window.open(account.image, "_blank")
-                                      }
-                                    >
-                                      View
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <label
-                                className={`flex items-center cursor-pointer ${account["col9"]?.toUpperCase() === "YES"
-                                  ? "text-red-600 font-medium"
-                                  : "text-purple-600"
-                                  } hover:text-purple-800 ${!isSelected || isDisabled
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                  }`}
-                              >
-                                <Upload className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="text-xs break-words font-medium">
-                                  {account["col9"]?.toUpperCase() === "YES"
-                                    ? "Required*"
-                                    : "Upload"}
-                                </span>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) =>
-                                    handleImageUpload(account._id, e)
-                                  }
-                                  disabled={!isSelected || isDisabled}
-                                />
-                              </label>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    {searchTerm ||
-                      selectedMembers.length > 0 ||
-                      startDate ||
-                      endDate ||
-                      selectedStatus
-                      ? "No tasks matching your filters"
-                      : "No tasks found for today, tomorrow, or past due dates"}
-                  </div>
-                )}
-              </div>
             </>
           )}
         </div>
