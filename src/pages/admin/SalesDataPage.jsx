@@ -47,6 +47,12 @@ const getTaskStatus = (
   ) {
     return "Admin Done";
   }
+
+  // Check for "Leave" status from Column Q (passed as argument or need to refactor function signature)
+  // Since I can't easily change all call sites of getTaskStatus right now, I will handle "Leave" display directly in the render logic or wrapper.
+  // BUT, `filteredHistoryData` uses `getSubmissionStatus` and checks statuses.
+  // It might be better to just let "Leave" be a distinct status if I can pass it.
+
   if (actualValue && actualValue.toString().trim() !== "") {
     return "Done";
   }
@@ -67,7 +73,13 @@ const getTaskStatus = (
   return "Pending";
 };
 
+// Helper to check if status is "Leave"
+const isLeaveStatus = (leaveValue) => {
+  return !isEmpty(leaveValue) && leaveValue.toString().trim().toLowerCase() === "leave";
+};
+
 const getStatusColor = (status) => {
+  if (status === "Leave") return "bg-red-100 text-red-800"; // Red styling for Leave
   switch (status) {
     case "Done":
       return "bg-green-100 text-green-800";
@@ -83,7 +95,11 @@ const getStatusColor = (status) => {
 };
 
 
-const getSubmissionStatus = (actualDate, delayColumn) => {
+const getSubmissionStatus = (actualDate, delayColumn, leaveColumn) => {
+  if (isLeaveStatus(leaveColumn)) {
+    return { status: 'Leave', color: 'red' }
+  }
+
   const actualNotNull = !isEmpty(actualDate)
   const delayNotNull = !isEmpty(delayColumn)
 
@@ -106,8 +122,9 @@ const MemoizedTaskRow = memo(({
   onRemarksChange,
   onImageUpload
 }) => {
-  const taskStatus = getTaskStatus(account["col10"], account["col15"], account["col6"], account["col4"]);
-  const isDisabled = taskStatus === "Admin Done" || taskStatus === "Done";
+  const isLeave = isLeaveStatus(account["col16"]);
+  const taskStatus = isLeave ? "Leave" : getTaskStatus(account["col10"], account["col15"], account["col6"], account["col4"]);
+  const isDisabled = taskStatus === "Admin Done" || taskStatus === "Done" || taskStatus === "Leave";
   const isNotToday = taskStatus === "Overdue";
 
   return (
@@ -725,15 +742,22 @@ function AccountDataPage() {
 
         let matchesStatus = true;
         if (selectedStatus) {
-          const submissionStatus = getSubmissionStatus(item["col10"], item["col11"]);
-          if (selectedStatus === "Done") {
-            matchesStatus = submissionStatus.status === "On time" || submissionStatus.status === "Late Submitted";
-          } else if (selectedStatus === "Pending") {
-            matchesStatus = submissionStatus.status === "—";
-          } else if (selectedStatus === "On time") {
-            matchesStatus = submissionStatus.status === "On time";
-          } else if (selectedStatus === "Late Submitted") {
-            matchesStatus = submissionStatus.status === "Late Submitted";
+          if (selectedStatus === "Leave") {
+            // Check if the item is a Leave item (marked by our isLeaveStatus helper or logic in fetchSheetData)
+            // We need to ensure logic in fetch set it correctly.
+            // In fetchSheetData, we set col16.
+            matchesStatus = isLeaveStatus(item["col16"]);
+          } else {
+            const submissionStatus = getSubmissionStatus(item["col10"], item["col11"], item["col16"]);
+            if (selectedStatus === "Done") {
+              matchesStatus = submissionStatus.status === "On time" || submissionStatus.status === "Late Submitted";
+            } else if (selectedStatus === "Pending") {
+              matchesStatus = submissionStatus.status === "—";
+            } else if (selectedStatus === "On time") {
+              matchesStatus = submissionStatus.status === "On time";
+            } else if (selectedStatus === "Late Submitted") {
+              matchesStatus = submissionStatus.status === "Late Submitted";
+            }
           }
         }
 
@@ -891,6 +915,7 @@ function AccountDataPage() {
         const columnKValue = rowValues[10] // Actual Date
         const columnMValue = rowValues[12] // Status (DONE)
         const columnPValue = rowValues[15] // Admin Processed Date (Column P)
+        const columnQValue = rowValues[16] // Leave Status (Column Q)
 
         const rowDateStr = columnGValue ? String(columnGValue).trim() : ""
         const formattedRowDate = parseGoogleSheetsDateTime(rowDateStr)
@@ -924,6 +949,7 @@ function AccountDataPage() {
           { id: "col13", label: "Remarks", type: "string" },
           { id: "col14", label: "Uploaded Image", type: "string" },
           { id: "col15", label: "Admin Done", type: "string" },
+          { id: "col16", label: "Leave", type: "string" },
         ]
 
         columnHeaders.forEach((header, index) => {
@@ -944,16 +970,24 @@ function AccountDataPage() {
         const hasColumnG = !isEmpty(columnGValue)
         const hasColumnK = !isEmpty(columnKValue)
         const isAdminDone = !isEmpty(columnPValue) && columnPValue.toString().trim() === "Admin Done"
+        const isLeave = isLeaveStatus(columnQValue);
 
-        // HISTORY LOGIC: For history, collect ALL tasks that have Column K filled (completed tasks)
-        if (hasColumnG && hasColumnK) {
+        // HISTORY LOGIC: For history, collect tasks that are Completed OR Admin Done OR Leave
+        // User request: "when Column Q (index-16) have Leave value ... show that data in history page"
+        if (hasColumnG) {
           const isUserHistoryMatch = currentUserRole === "admin" || assignedTo.toLowerCase() === currentUsername.toLowerCase()
-          if (isUserHistoryMatch) {
+          // Matches if: (Has Actual Date AND NOT Leave) OR Admin Done OR Leave
+          // Basically, any "finished" state.
+          // Note: Originally history required `hasColumnK`.
+          const isCompleted = hasColumnK || isAdminDone || isLeave;
+
+          if (isUserHistoryMatch && isCompleted) {
             historyRows.push(rowData)
           }
         }
 
-        // TASK PAGE LOGIC: Show Pending and Overdue tasks (excluding Done and Admin Done)
+        // TASK PAGE LOGIC: Show Pending and Overdue tasks
+        // Exclude: Done, Admin Done, Leave
         if (hasColumnG) {
           const rowDate = parseDateFromDDMMYYYY(formattedRowDate)
           const isToday = formattedRowDate.startsWith(todayStr)
@@ -961,8 +995,8 @@ function AccountDataPage() {
           const isYesterday = formattedRowDate.startsWith(yesterdayStr)
           const isPastDate = rowDate && rowDate <= today
 
-          // Only add to tasks if it's NOT done and NOT admin done
-          const isNotDone = !hasColumnK && !isAdminDone
+          // Only add to tasks if it's NOT done, NOT admin done, AND NOT Leave
+          const isNotDone = !hasColumnK && !isAdminDone && !isLeave
 
           const assignedToUpper = assignedTo.trim().toUpperCase();
           const isUserWithGracePeriod = usersWithGracePeriod.includes(assignedToUpper);
@@ -1295,6 +1329,7 @@ function AccountDataPage() {
                 <>
                   <option value="On time">On time</option>
                   <option value="Late Submitted">Late Submitted</option>
+                  <option value="Leave">Leave</option>
                 </>
               ) : (
                 <>
@@ -1438,6 +1473,92 @@ function AccountDataPage() {
     );
   };
 
+
+
+  // Leave Handler
+  const handleLeave = async () => {
+    // Get today's date string
+    const today = new Date();
+    const todayStr = formatDateToDDMMYYYY(today);
+
+    // Filter tasks that match today's date from accountData
+    const todaysTasks = accountData.filter(task => {
+      const hasColumnG = !isEmpty(task["col6"]); // Task Start Date
+      if (!hasColumnG) return false;
+
+      const rowDateStr = String(task["col6"]).trim();
+      let formattedRowDate = parseGoogleSheetsDateTime(rowDateStr); // returns DD/MM/YYYY or DD/MM/YYYY HH:MM:SS
+
+      // Strip time if present to ensure date-only comparison
+      if (formattedRowDate && formattedRowDate.includes(" ")) {
+        formattedRowDate = formattedRowDate.split(" ")[0];
+      }
+
+      if (formattedRowDate !== todayStr) return false;
+
+      // Check if Column K (Index 10) is empty
+      // User request: "fetch the Column K (index-10) and if there is null value then store leave value"
+      const isActualEmpty = isEmpty(task["col10"]);
+      if (!isActualEmpty) return false;
+
+      // Ensure it's not already done or leave
+      const isLeave = isLeaveStatus(task["col16"]);
+      if (isLeave) return false;
+
+      return true;
+    });
+
+    if (todaysTasks.length === 0) {
+      alert("No pending tasks found for today with empty Actual Date to mark as Leave.");
+      return;
+    }
+
+    const confirmLeave = window.confirm(`Are you sure you want to mark ALL ${todaysTasks.length} pending tasks for TODAY as Leave?`);
+    if (!confirmLeave) return;
+
+    setIsSubmitting(true);
+    try {
+      // Process updates
+      const updates = todaysTasks.map(async (item) => {
+        const formData = new FormData();
+        formData.append("sheetName", CONFIG.SHEET_NAME);
+        formData.append("action", "update");
+        formData.append("rowIndex", item._rowIndex);
+
+        const rowData = Array(17).fill("");
+        // Don't update Column K (Index 10) as per request
+        rowData[16] = "Leave"; // Index 16 is Column Q
+
+        formData.append("rowData", JSON.stringify(rowData));
+
+        return fetch(CONFIG.APPS_SCRIPT_URL, {
+          method: "POST",
+          body: formData,
+        }).then(res => res.json());
+      });
+
+      await Promise.all(updates);
+
+      // Batch update local state
+      setAccountData((prev) => prev.map(item => {
+        if (todaysTasks.find(t => t._id === item._id)) {
+          // Update Col 16 Only, keep col10 as is (empty)
+          return { ...item, col16: "Leave" }
+        }
+        return item;
+      }));
+
+      setSelectedItems(new Set());
+      setSuccessMessage(`Successfully marked ${todaysTasks.length} task(s) as Leave!`);
+
+    } catch (error) {
+      console.error("Leave update error:", error);
+      alert("Error occurred while marking as Leave. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -1448,138 +1569,102 @@ function AccountDataPage() {
               : CONFIG.PAGE_CONFIG.title}
           </h1>
 
-          {/* Search Input - Stays at top for both mobile and desktop */}
-          <div className="relative w-full sm:w-auto">
+          {/* Search Input */}
+          <div className="relative w-full sm:w-auto flex-grow max-w-md mx-auto sm:mx-0">
             <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={18}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400"
+              size={16}
             />
             <input
               type="text"
-              placeholder={
-                showHistory ? "Search history..." : "Search tasks..."
-              }
+              placeholder={showHistory ? "Search history..." : "Search tasks..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
+              className="pl-9 pr-4 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full text-sm bg-purple-50/30 transition-all hover:bg-white"
             />
           </div>
 
-          {/* Buttons Section - Rearranged for mobile */}
-          <div className="flex flex-col gap-2 w-full sm:hidden">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="w-full gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium min-w-[100px]"
             >
-              <div className="flex items-center justify-center">
-                <Filter className="h-4 w-4 mr-1" />
-                <span>Filters</span>
-              </div>
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
             </button>
 
             {/* History Toggle Button */}
             <button
               onClick={toggleHistory}
-              className="w-full gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium min-w-[140px]"
             >
               {showHistory ? (
-                <div className="flex items-center justify-center">
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>Back to Tasks</span>
-                </div>
+                <>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Tasks
+                </>
               ) : (
-                <div className="flex items-center justify-center">
-                  <History className="h-4 w-4 mr-1" />
-                  <span>View History</span>
-                </div>
+                <>
+                  <History className="h-4 w-4 mr-2" />
+                  History
+                </>
               )}
             </button>
 
-            {/* Admin Mark Done Button for mobile (only in history view) */}
-            {showHistory &&
-              userRole === "admin" &&
-              selectedHistoryItems.length > 0 && (
-                <button
-                  onClick={handleMarkMultipleDone}
-                  disabled={markingAsDone}
-                  className="w-full bg-green-600 py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  {markingAsDone
-                    ? "Processing..."
-                    : `Mark ${selectedHistoryItems.length} Items as Admin Done`}
-                </button>
-              )}
-
-            {/* Submit Button (only show in tasks view) */}
-            {!showHistory && (
+            {/* Admin Mark Done (History View) */}
+            {showHistory && userRole === "admin" && selectedHistoryItems.length > 0 && (
               <button
-                onClick={handleSubmit}
-                disabled={selectedItemsCount === 0 || isSubmitting}
-                className="w-full gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                onClick={handleMarkMultipleDone}
+                disabled={markingAsDone}
+                className="flex items-center justify-center py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
               >
-                {isSubmitting
-                  ? "Processing..."
-                  : `Submit Selected (${selectedItemsCount})`}
+                {markingAsDone ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing
+                  </span>
+                ) : (
+                  "Mark Admin Done"
+                )}
               </button>
             )}
-          </div>
 
-          {/* Desktop Buttons - Hidden on mobile */}
-          <div className="hidden sm:flex space-x-4">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="w-52 gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              <div className="flex items-center">
-                <Filter className="h-4 w-4 mr-1" />
-                <span>Filters</span>
-              </div>
-            </button>
-
-            <button
-              onClick={toggleHistory}
-              className="w-52 gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              {showHistory ? (
-                <div className="flex items-center">
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>Back to Tasks</span>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <History className="h-4 w-4 mr-1" />
-                  <span>View History</span>
-                </div>
-              )}
-            </button>
-
-            {/* Admin Mark Done Button for desktop (only in history view) */}
-            {showHistory &&
-              userRole === "admin" &&
-              selectedHistoryItems.length > 0 && (
-                <button
-                  onClick={handleMarkMultipleDone}
-                  disabled={markingAsDone}
-                  className="w-52 bg-green-600 py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  {markingAsDone
-                    ? "Processing..."
-                    : `Mark ${selectedHistoryItems.length} Items as Admin Done`}
-                </button>
-              )}
-
-            {/* Submit Button for desktop (only show in tasks view) */}
+            {/* Task Actions (Tasks View) */}
             {!showHistory && (
-              <button
-                onClick={handleSubmit}
-                disabled={selectedItemsCount === 0 || isSubmitting}
-                className="w-52 gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                {isSubmitting
-                  ? "Processing..."
-                  : `Submit Selected (${selectedItemsCount})`}
-              </button>
+              <>
+                {/* Leave Button */}
+                <button
+                  onClick={handleLeave}
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center py-2 px-4 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 transition-all duration-200 shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
+                >
+                  Leave
+                </button>
+
+                {/* Submit Button */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={selectedItemsCount === 0 || isSubmitting}
+                  className="flex items-center justify-center py-2 px-6 gradient-bg text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 min-w-[140px]"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      ...
+                    </span>
+                  ) : (
+                    `Submit (${selectedItemsCount})`
+                  )}
+                </button>
+              </>
             )}
           </div>
 
@@ -1808,7 +1893,8 @@ function AccountDataPage() {
                         {displayedHistoryData.map((history) => {
                           const submissionStatus = getSubmissionStatus(
                             history["col10"],
-                            history["col11"]
+                            history["col11"],
+                            history["col16"]
                           );
                           return (
                             <tr key={history._id} className="hover:bg-gray-50">

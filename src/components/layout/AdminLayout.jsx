@@ -527,7 +527,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center justify-between border-b border-blue-200 bg-white px-4 md:px-6">
           <div className="flex md:hidden w-8"></div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-sm md:text-xl font-bold flex items-center gap-2">
             <span style={{
               textAlign: "center",
               background: 'linear-gradient(to right, #9333EA, #DB2777)',
