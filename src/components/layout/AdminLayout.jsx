@@ -70,6 +70,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       showFor: ["admin", "user"] // Show for both roles
     },
     {
+      href: "/dashboard/assign-task",
+      label: "Assign Task",
+      icon: CheckSquare,
+      active: location.pathname === "/dashboard/assign-task",
+      showFor: ["admin"] // Only show for admin
+    },
+    {
       href: "/dashboard/delegation",
       label: "Delegation",
       icon: ClipboardList,
@@ -82,13 +89,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Database,
       active: location.pathname === "/dashboard/data/sales",
       showFor: ["admin", "user"] // Show for both roles
-    },
-    {
-      href: "/dashboard/assign-task",
-      label: "Assign Task",
-      icon: CheckSquare,
-      active: location.pathname === "/dashboard/assign-task",
-      showFor: ["admin"] // Only show for admin
     },
     {
       href: "/dashboard/quick-task",

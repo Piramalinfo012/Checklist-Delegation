@@ -8,6 +8,7 @@ import {
   History,
   ArrowLeft,
   Edit,
+  Image
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 
@@ -2049,7 +2050,42 @@ function DelegationDataPage() {
 
                           <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                             <div>
-                              {account.image ? (
+                              {account["col20"] === "Verify Pending" ? (
+                                <div className="flex items-center gap-2">
+                                  {account["col15"] ? (
+                                    <>
+                                      <a
+                                        href={account["col15"]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <img
+                                          src={account["col15"]}
+                                          alt="Proof"
+                                          className="h-10 w-10 object-cover rounded-md"
+                                          onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src =
+                                              "https://placehold.co/40x40?text=IMG";
+                                          }}
+                                        />
+                                      </a>
+                                      <a
+                                        href={account["col15"]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-purple-600 underline"
+                                      >
+                                        View
+                                      </a>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">
+                                      No Proof
+                                    </span>
+                                  )}
+                                </div>
+                              ) : account.image ? (
                                 <div className="flex items-center gap-2">
                                   <img src={typeof account.image === "string" ? account.image : URL.createObjectURL(account.image)} alt="Receipt" className="h-10 w-10 object-cover rounded-md" />
                                   <div className="text-xs text-gray-600">{account.image instanceof File ? "Ready to upload" : <button className="text-purple-600" onClick={() => window.open(account.image, "_blank")}>View</button>}</div>
@@ -2337,7 +2373,28 @@ function DelegationDataPage() {
                                 className={`px-6 py-4 whitespace-nowrap ${!account["col17"] ? "bg-orange-50" : ""
                                   }`}
                               >
-                                {account.image ? (
+                                {account["col20"] === "Verify Pending" ? (
+                                  <div className="flex items-center">
+                                    {account["col15"] ? (
+                                      <>
+                                        <div className="flex flex-col">
+                                          <a
+                                            href={account["col15"]}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-purple-600 hover:text-purple-800 underline"
+                                          >
+                                            <Image size={24} />
+                                          </a>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">
+                                        No Proof
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : account.image ? (
                                   <div className="flex items-center">
                                     <img
                                       src={
