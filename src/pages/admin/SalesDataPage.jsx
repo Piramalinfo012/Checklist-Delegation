@@ -1481,8 +1481,13 @@ function AccountDataPage() {
     const today = new Date();
     const todayStr = formatDateToDDMMYYYY(today);
 
-    // Filter tasks that match today's date from accountData
-    const todaysTasks = accountData.filter(task => {
+    // Determine candidate tasks: If items are selected, use those. Otherwise use all filtered items (Bulk action).
+    const candidates = selectedItems.size > 0
+      ? filteredAccountData.filter(item => selectedItems.has(item._id))
+      : filteredAccountData;
+
+    // Filter tasks that match today's date
+    const todaysTasks = candidates.filter(task => {
       const hasColumnG = !isEmpty(task["col6"]); // Task Start Date
       if (!hasColumnG) return false;
 
@@ -1497,7 +1502,6 @@ function AccountDataPage() {
       if (formattedRowDate !== todayStr) return false;
 
       // Check if Column K (Index 10) is empty
-      // User request: "fetch the Column K (index-10) and if there is null value then store leave value"
       const isActualEmpty = isEmpty(task["col10"]);
       if (!isActualEmpty) return false;
 
@@ -1509,41 +1513,41 @@ function AccountDataPage() {
     });
 
     if (todaysTasks.length === 0) {
-      alert("No pending tasks found for today with empty Actual Date to mark as Leave.");
+      alert("No pending tasks found for today in the current view to mark as Leave.");
       return;
     }
 
-    const confirmLeave = window.confirm(`Are you sure you want to mark ALL ${todaysTasks.length} pending tasks for TODAY as Leave?`);
+    const confirmLeave = window.confirm(`Are you sure you want to mark ${todaysTasks.length} visible pending task(s) for TODAY as Leave?`);
     if (!confirmLeave) return;
 
     setIsSubmitting(true);
     try {
-      // Process updates
-      const updates = todaysTasks.map(async (item) => {
+      // Process updates SEQUENTIALLY to avoid Google Apps Script rate limits/lock contention
+      // This solves the CORS/Network error issue when updating multiple rows
+      for (const item of todaysTasks) {
         const formData = new FormData();
         formData.append("sheetName", CONFIG.SHEET_NAME);
         formData.append("action", "update");
         formData.append("rowIndex", item._rowIndex);
 
         const rowData = Array(17).fill("");
-        // Don't update Column K (Index 10) as per request
-        rowData[16] = "Leave"; // Index 16 is Column Q
+        // Update Column K (Index 10) with today's date and Column Q (Index 16) with "Leave"
+        rowData[10] = todayStr; // Index 10 is Column K (Actual Date)
+        rowData[16] = "Leave"; // Index 16 is Column Q (Leave Status)
 
         formData.append("rowData", JSON.stringify(rowData));
 
-        return fetch(CONFIG.APPS_SCRIPT_URL, {
+        await fetch(CONFIG.APPS_SCRIPT_URL, {
           method: "POST",
           body: formData,
-        }).then(res => res.json());
-      });
-
-      await Promise.all(updates);
+        }).then(res => res.json()); // Wait for each request to complete
+      }
 
       // Batch update local state
       setAccountData((prev) => prev.map(item => {
         if (todaysTasks.find(t => t._id === item._id)) {
-          // Update Col 16 Only, keep col10 as is (empty)
-          return { ...item, col16: "Leave" }
+          // Update Col 16 (Leave) AND Col 10 (Actual Date)
+          return { ...item, col10: todayStr, col16: "Leave" }
         }
         return item;
       }));
