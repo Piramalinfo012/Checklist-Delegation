@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { BarChart3, CheckCircle2, Clock, ListTodo, Users, AlertTriangle, Filter, User, Edit3, Upload, X } from 'lucide-react'
+import { useState, useEffect, useRef } from "react"
+import { BarChart3, CheckCircle2, Clock, ListTodo, Users, AlertTriangle, Filter, User, Edit3, Upload, X, ChevronDown, Check } from 'lucide-react'
 import AdminLayout from "../../components/layout/AdminLayout.jsx"
 import {
   BarChart,
@@ -16,6 +16,61 @@ import {
   Pie,
   Cell
 } from "recharts"
+
+
+// Custom Styled Dropdown Component
+const CustomDropdown = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between bg-white text-gray-700 font-semibold py-3 px-5 rounded-2xl shadow-sm hover:shadow-md border border-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+      >
+        <span className="flex items-center gap-2">
+          {Icon && <Icon className="h-4 w-4 text-pink-500" />}
+          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top">
+          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+            {options.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center justify-between
+                  ${value === option.value ? 'bg-pink-50 text-pink-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+              >
+                <span>{option.label}</span>
+                {value === option.value && <Check className="h-4 w-4 text-pink-500" />}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAy98t3XAyRP3pFE7XOoDiTDU3Yc9WOIFayRXELW2XnUAzl7yE9bnO94GvZV0wJkH_/exec";
@@ -513,6 +568,12 @@ export default function AdminDashboard() {
 
           const assignedTo = getCellValue(row, 4) || "Unassigned";
           const taskId = getCellValue(row, 1);
+          const leaveVal = getCellValue(row, 16);
+          const isLeave = leaveVal && String(leaveVal).trim().toLowerCase() === "leave";
+
+          if (isLeave) {
+            return null; // Skip leave tasks entirely from dashboard metrics
+          }
 
           if (
             isRegularUser() &&
@@ -1051,7 +1112,7 @@ export default function AdminDashboard() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="w-[100px] bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${staff.progress}%` }}></div>
+                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${staff.progress}%` }}></div>
                     </div>
                     <span className="text-xs text-gray-500">{staff.progress}%</span>
                   </div>
@@ -1141,16 +1202,18 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <select
-              value={dashboardType}
-              onChange={(e) => {
-                setDashboardType(e.target.value);
-              }}
-              className="w-[140px] rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-            >
-              <option value="checklist">Checklist</option>
-              <option value="delegation">Delegation</option>
-            </select>
+            <div className="w-[180px]">
+              <CustomDropdown
+                value={dashboardType}
+                onChange={setDashboardType}
+                options={[
+                  { value: "checklist", label: "Checklist" },
+                  { value: "delegation", label: "Delegation" }
+                ]}
+                icon={ListTodo}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
@@ -1263,8 +1326,8 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-3">
             <button
               className={`py-3 text-center font-medium transition-colors ${taskView === "recent"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-purple-600 text-white"
+                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
                 }`}
               onClick={() => setTaskView("recent")}
             >
@@ -1272,8 +1335,8 @@ export default function AdminDashboard() {
             </button>
             <button
               className={`py-3 text-center font-medium transition-colors ${taskView === "upcoming"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-purple-600 text-white"
+                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
                 }`}
               onClick={() => setTaskView("upcoming")}
             >
@@ -1283,8 +1346,8 @@ export default function AdminDashboard() {
             </button>
             <button
               className={`py-3 text-center font-medium transition-colors ${taskView === "overdue"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-purple-600 text-white"
+                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
                 }`}
               onClick={() => setTaskView("overdue")}
             >
@@ -1302,13 +1365,18 @@ export default function AdminDashboard() {
                   <Filter className="h-4 w-4 mr-2" />
                   Search Tasks
                 </label>
-                <input
-                  id="search"
-                  placeholder="Search by task title or ID"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                />
+                <div className="relative">
+                  <input
+                    id="search"
+                    placeholder="Search by task title or ID"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200 shadow-sm focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-500/20 transition-all duration-200"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2 md:w-[180px]">
                 <label
@@ -1318,27 +1386,23 @@ export default function AdminDashboard() {
                   <Filter className="h-4 w-4 mr-2" />
                   Filter by Staff
                 </label>
-                <select
-                  id="staff-filter"
+                <CustomDropdown
                   value={filterStaff}
-                  onChange={(e) => setFilterStaff(e.target.value)}
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                >
-                  <option value="all">All Staff</option>
-                  {/* Role-based filtering for dropdown options */}
-                  {departmentData.staffMembers
-                    .filter(
-                      (staff) =>
-                        isAdminUser() ||
-                        staff.name.toLowerCase() ===
-                        sessionStorage.getItem("username")?.toLowerCase()
-                    )
-                    .map((staff) => (
-                      <option key={staff.id} value={staff.name}>
-                        {staff.name}
-                      </option>
-                    ))}
-                </select>
+                  onChange={setFilterStaff}
+                  options={[
+                    { value: "all", label: "All Staff" },
+                    ...departmentData.staffMembers
+                      .filter(
+                        (staff) =>
+                          isAdminUser() ||
+                          staff.name.toLowerCase() ===
+                          sessionStorage.getItem("username")?.toLowerCase()
+                      )
+                      .map((staff) => ({ value: staff.name, label: staff.name }))
+                  ]}
+                  placeholder="Filter by Staff"
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -1459,7 +1523,7 @@ export default function AdminDashboard() {
           <div className="bg-purple-100 rounded-md p-1 flex space-x-1">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`flex-1 py-2 text-center rounded-md transition-colors ${activeTab === "overview"
+              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "overview"
                 ? "bg-purple-600 text-white"
                 : "text-purple-700 hover:bg-purple-200"
                 }`}
@@ -1468,7 +1532,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("mis")}
-              className={`flex-1 py-2 text-center rounded-md transition-colors ${activeTab === "mis"
+              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "mis"
                 ? "bg-purple-600 text-white"
                 : "text-purple-700 hover:bg-purple-200"
                 }`}
@@ -1477,7 +1541,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("staff")}
-              className={`flex-1 py-2 text-center rounded-md transition-colors ${activeTab === "staff"
+              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "staff"
                 ? "bg-purple-600 text-white"
                 : "text-purple-700 hover:bg-purple-200"
                 }`}

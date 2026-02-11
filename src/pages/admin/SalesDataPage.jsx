@@ -594,7 +594,7 @@ function AccountDataPage() {
   const filteredAccountData = useMemo(() => {
     if (!accountData.length) return []
 
-    let filtered = accountData;
+    let filtered = accountData.filter((account) => !isLeaveStatus(account["col16"]));
 
     if (debouncedSearchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
@@ -1589,11 +1589,11 @@ function AccountDataPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium min-w-[100px]"
+              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium w-full sm:min-w-[100px] sm:w-auto"
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
@@ -1602,7 +1602,7 @@ function AccountDataPage() {
             {/* History Toggle Button */}
             <button
               onClick={toggleHistory}
-              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium min-w-[140px]"
+              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium w-full sm:min-w-[140px] sm:w-auto"
             >
               {showHistory ? (
                 <>
@@ -1622,7 +1622,7 @@ function AccountDataPage() {
               <button
                 onClick={handleMarkMultipleDone}
                 disabled={markingAsDone}
-                className="flex items-center justify-center py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
+                className="flex items-center justify-center py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed w-full sm:min-w-[140px] sm:w-auto"
               >
                 {markingAsDone ? (
                   <span className="flex items-center">
@@ -1642,19 +1642,19 @@ function AccountDataPage() {
             {!showHistory && (
               <>
                 {/* Leave Button */}
-                <button
+                {/* <button
                   onClick={handleLeave}
                   disabled={isSubmitting}
                   className="flex items-center justify-center py-2 px-4 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 transition-all duration-200 shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
                 >
                   Leave
-                </button>
+                </button> */}
 
                 {/* Submit Button */}
                 <button
                   onClick={handleSubmit}
                   disabled={selectedItemsCount === 0 || isSubmitting}
-                  className="flex items-center justify-center py-2 px-6 gradient-bg text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 min-w-[140px]"
+                  className="flex items-center justify-center py-2 px-6 gradient-bg text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 w-full sm:min-w-[140px] sm:w-auto"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">

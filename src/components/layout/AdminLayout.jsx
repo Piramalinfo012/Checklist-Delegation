@@ -169,7 +169,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
     >
       {/* Sidebar for desktop */}
       <aside className="hidden w-64 flex-shrink-0 border-r border-blue-200 bg-white md:flex md:flex-col">
-        <div className="flex h-14 items-center border-b border-blue-200 px-4 bg-gradient-to-r from-blue-100 to-purple-100">
+        <div className="flex h-14 items-center border-b border-blue-200 px-4 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500
+">
           <Link
             to="/dashboard/admin"
             className="flex items-center gap-2 font-semibold text-blue-700"

@@ -1231,10 +1231,10 @@ export default function AssignTask() {
                 <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FileCheck className="h-8 w-8 text-purple-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-purple-700 mb-2">
+                <h3 className="text-lg font-semibold text-black mb-2">
                   Checklist Task
                 </h3>
-                <p className="text-sm text-purple-600">
+                <p className="text-sm text-gray-600">
                   All frequencies of Daily , Weekly , Monthly , Yearly etc.
                 </p>
                 <button className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
@@ -1252,10 +1252,10 @@ export default function AssignTask() {
                 <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <BellRing className="h-8 w-8 text-purple-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-purple-700 mb-2">
+                <h3 className="text-lg font-semibold text-black mb-2">
                   Delegation Task
                 </h3>
-                <p className="text-sm text-purple-600">
+                <p className="text-sm text-gray-600">
                   Only for 'One-Time' , 'Critical' and 'Urgent' frequency.
                 </p>
                 <button className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
