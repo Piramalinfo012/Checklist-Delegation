@@ -131,6 +131,12 @@ export default function AdminDashboard() {
     completedRatingThreePlus: 0
   })
 
+  // Tracks whether the last department data fetch failed, so we can show a small
+  // "retrying" indicator and keep automatically retrying in the background instead of
+  // leaving the dashboard stuck at 0 until the user manually reloads the page.
+  const [dataLoadError, setDataLoadError] = useState(false);
+  const retryTimeoutRef = useRef(null);
+
   // Store the current date for overdue calculation
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -941,13 +947,34 @@ export default function AdminDashboard() {
         completedRatingThreePlus
       });
 
+      // Success — clear any error indicator and cancel a pending retry, if one was scheduled.
+      setDataLoadError(false);
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
     } catch (error) {
       console.error(`Error fetching ${sheetName} sheet data:`, error);
+      // The backend occasionally fails intermittently (a known, accepted limitation we can't
+      // fix from the frontend). Rather than leaving the dashboard stuck at 0 until the user
+      // manually reloads, keep quietly retrying in the background until it succeeds.
+      setDataLoadError(true);
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = setTimeout(() => {
+        fetchDepartmentData();
+      }, 25000);
     }
   };
 
   useEffect(() => {
     fetchDepartmentData();
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
   }, [dashboardType]);
 
   // When dashboard loads, set current date
@@ -1204,9 +1231,17 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         {/* MODIFIED: Updated header section to include profile image */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-700">
-            CHECKLIST & DELEGATION
-          </h2>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-700">
+              CHECKLIST & DELEGATION
+            </h2>
+            {dataLoadError && (
+              <p className="flex items-center gap-1.5 text-xs text-amber-600 mt-1">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                डेटा लोड करने में समस्या, दोबारा कोशिश जारी है... / Having trouble loading data, retrying automatically...
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             <div className="relative group">
               {userProfileImage ? (
