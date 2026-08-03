@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, memo } from "react"
-import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon } from "lucide-react"
+import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon, Clipboard } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 
 // Configuration object - Move all configurations here
@@ -287,6 +287,43 @@ const MemoizedTaskRow = memo(({
                   disabled={!isSelected}
                 />
               </label>
+
+              {/* Paste Icon: paste a copied screenshot/image directly from the clipboard */}
+              <button
+                type="button"
+                title="Paste screenshot from clipboard"
+                disabled={!isSelected}
+                onClick={async () => {
+                  try {
+                    if (!navigator.clipboard || !navigator.clipboard.read) {
+                      alert("Clipboard paste is not supported in this browser. Please use Camera or Gallery.");
+                      return;
+                    }
+                    const clipboardItems = await navigator.clipboard.read();
+                    const files = [];
+                    for (const clipItem of clipboardItems) {
+                      const imageType = clipItem.types.find((t) => t.startsWith("image/"));
+                      if (imageType) {
+                        const blob = await clipItem.getType(imageType);
+                        const ext = imageType.split("/")[1] || "png";
+                        files.push(new File([blob], `screenshot_${Date.now()}.${ext}`, { type: imageType }));
+                      }
+                    }
+                    if (files.length === 0) {
+                      alert("No image found in clipboard. Take a screenshot first, then tap Paste.");
+                      return;
+                    }
+                    onImageUpload(account._id, { target: { files } });
+                  } catch (err) {
+                    console.error("Paste failed:", err);
+                    alert("Could not paste image. Please allow clipboard access, or use Camera/Gallery.");
+                  }
+                }}
+                className={`flex flex-col items-center justify-center cursor-pointer p-2 rounded-md border border-gray-200 bg-gray-50 hover:bg-purple-50 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isDisabled || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+              >
+                <Clipboard className="h-5 w-5 mb-1" />
+                <span className="text-[10px] font-medium">Paste</span>
+              </button>
             </div>
           </div>
         )}

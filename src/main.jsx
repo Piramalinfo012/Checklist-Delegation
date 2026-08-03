@@ -30,10 +30,62 @@ const makeJsonResponse = (text) => new Response(text, {
 // page's JSON.parse with "Unexpected token '<'". We detect and reject these instead of caching them.
 const looksLikeHtml = (text) => typeof text === 'string' && text.trim().startsWith('<');
 
-// NOTE: We deliberately do NOT retry / abort / hedge these requests. Google's Apps Script
-// web app redirects through script.googleusercontent.com with single-use tokens, and firing
-// retries (or extra parallel copies) makes that endpoint return 404. So each request is a
-// single, clean fetch — speed comes purely from the cache layers below, never from retrying.
+// Concurrency limiter: caps how many requests THIS browser tab sends to Google at once.
+// Google Apps Script web apps have a limited pool of simultaneous executions shared across
+// EVERY user hitting the same deployment. With ~20 people using the app together, if each
+// browser fires several requests at once (multiple widgets/tabs loading sheets in parallel),
+// the shared pool fills up and Apps Script's redirect layer starts returning 404s to whoever
+// missed the slot. Queuing requests locally (instead of firing them all instantly) keeps each
+// client's contribution to that shared pool small and steady, so it stays healthy for everyone.
+const MAX_CONCURRENT_SCRIPT_REQUESTS = 5;
+let activeScriptRequests = 0;
+const requestQueue = [];
+
+const acquireSlot = () => new Promise((resolve) => {
+  const tryAcquire = () => {
+    if (activeScriptRequests < MAX_CONCURRENT_SCRIPT_REQUESTS) {
+      activeScriptRequests++;
+      resolve();
+    } else {
+      requestQueue.push(tryAcquire);
+    }
+  };
+  tryAcquire();
+});
+
+const releaseSlot = () => {
+  activeScriptRequests--;
+  const next = requestQueue.shift();
+  if (next) next();
+};
+
+// Up to 3 total attempts with short, bounded delays (not exponential) — enough to smooth over
+// an intermittent server-side hiccup we can't fix from the frontend, without the 30-45s stacking
+// delay a longer exponential retry caused. If all 3 fail, that's surfaced immediately rather than
+// continuing to retry indefinitely.
+const GET_RETRY_DELAYS_MS = [400, 900];
+
+const fetchGetLimited = async (args) => {
+  await acquireSlot();
+  try {
+    let lastError;
+    for (let attempt = 0; attempt <= GET_RETRY_DELAYS_MS.length; attempt++) {
+      try {
+        const response = await originalFetch(...args);
+        if (response.ok) return response;
+        lastError = new Error(`Request failed: ${response.status}`);
+      } catch (err) {
+        lastError = err;
+      }
+      if (attempt < GET_RETRY_DELAYS_MS.length) {
+        await new Promise((r) => setTimeout(r, GET_RETRY_DELAYS_MS[attempt]));
+      }
+    }
+    throw lastError;
+  } finally {
+    releaseSlot();
+  }
+};
 
 const revalidateInBackground = (cacheKey, args) => {
   const now = Date.now();
@@ -44,7 +96,7 @@ const revalidateInBackground = (cacheKey, args) => {
 
   setTimeout(async () => {
     try {
-      const bgResponse = await originalFetch(...args);
+      const bgResponse = await fetchGetLimited(args);
       if (bgResponse.ok) {
         const text = await bgResponse.text();
         // Don't let a transient HTML error page overwrite good cached data.
@@ -82,7 +134,17 @@ window.fetch = async (...args) => {
     } catch (e) {
       console.error("Failed to clear cache", e);
     }
-    return originalFetch(...args);
+    // Mutations are queued through the same concurrency limiter as reads (so this client never
+    // bursts many simultaneous writes at Apps Script) but are NEVER auto-retried here — a write
+    // may already have been processed server-side even if the response fails to come back, so
+    // blindly retrying could double-submit. Pages that need write-retry safety (e.g. bulk image
+    // uploads) implement their own idempotent retry already.
+    await acquireSlot();
+    try {
+      return await originalFetch(...args);
+    } finally {
+      releaseSlot();
+    }
   }
 
   // 2. Only intercept Google Apps Script or Sheets GET queries
@@ -125,7 +187,7 @@ window.fetch = async (...args) => {
       }
 
       const fetchPromise = (async () => {
-        const response = await originalFetch(...args);
+        const response = await fetchGetLimited(args);
         if (!response.ok) {
           throw new Error(`Request failed: ${response.status}`);
         }
