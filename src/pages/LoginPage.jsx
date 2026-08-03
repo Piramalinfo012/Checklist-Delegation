@@ -586,6 +586,13 @@ const LoginPage = () => {
                   <p className="text-gray-500 text-sm">You can now upload a photo directly from the camera.</p>
                 </div>
               </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full bg-purple-100 text-purple-600 text-sm font-bold">4</span>
+                <div>
+                  <p className="text-gray-800 font-medium">अब से आप स्क्रीनशॉट लेकर सीधे Paste बटन से इमेज पेस्ट कर सकते हैं।</p>
+                  <p className="text-gray-500 text-sm">You can now take a screenshot and directly paste it as an image using the Paste button.</p>
+                </div>
+              </li>
             </ul>
 
             {/* Tutorial: screenshot-style mockup showing where to upload */}
@@ -638,21 +645,46 @@ const LoginPage = () => {
                   </svg>
                 </div>
 
-                {/* Options that appear on tapping Upload */}
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
-                    <i className="fas fa-folder-open text-purple-500 text-base mb-1"></i>
-                    <span className="text-[10px] font-medium text-gray-700 leading-tight">फाइल<br />Files</span>
+                {/* Options that appear on tapping Upload — each one individually highlighted with its own arrow + caption */}
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[9px] font-bold text-purple-700 leading-tight">फोटो खींचें</p>
+                    <p className="text-[8px] text-gray-500 leading-tight mb-0.5">Take photo</p>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-4 w-4 text-purple-500 animate-bounce">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                    <div className="mt-0.5 flex flex-col items-center justify-center rounded-lg bg-white border-2 border-purple-400 py-2 px-1 w-full">
+                      <i className="fas fa-camera text-purple-500 text-base mb-1"></i>
+                      <span className="text-[10px] font-medium text-gray-700 leading-tight">कैमरा<br />Camera</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
-                    <i className="fas fa-images text-purple-500 text-base mb-1"></i>
-                    <span className="text-[10px] font-medium text-gray-700 leading-tight">कई इमेज<br />Gallery</span>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[9px] font-bold text-purple-700 leading-tight">गैलरी से चुनें</p>
+                    <p className="text-[8px] text-gray-500 leading-tight mb-0.5">Choose from gallery</p>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-4 w-4 text-purple-500 animate-bounce">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                    <div className="mt-0.5 flex flex-col items-center justify-center rounded-lg bg-white border-2 border-purple-400 py-2 px-1 w-full">
+                      <i className="fas fa-images text-purple-500 text-base mb-1"></i>
+                      <span className="text-[10px] font-medium text-gray-700 leading-tight">कई इमेज<br />Gallery</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
-                    <i className="fas fa-camera text-purple-500 text-base mb-1"></i>
-                    <span className="text-[10px] font-medium text-gray-700 leading-tight">कैमरा<br />Camera</span>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[9px] font-bold text-purple-700 leading-tight">स्क्रीनशॉट पेस्ट करें</p>
+                    <p className="text-[8px] text-gray-500 leading-tight mb-0.5">Paste screenshot</p>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-4 w-4 text-purple-500 animate-bounce">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                    <div className="mt-0.5 flex flex-col items-center justify-center rounded-lg bg-white border-2 border-purple-400 py-2 px-1 w-full">
+                      <i className="fas fa-clipboard text-purple-500 text-base mb-1"></i>
+                      <span className="text-[10px] font-medium text-gray-700 leading-tight">पेस्ट<br />Paste</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-[10px] text-gray-500 mt-2 text-center">
+                  स्क्रीनशॉट पहले कॉपी करें, फिर <span className="font-semibold text-purple-600">Paste</span> पर क्लिक करें।
+                  / Copy a screenshot first, then click <span className="font-semibold text-purple-600">Paste</span> to attach it directly.
+                </p>
               </div>
             </div>
 
