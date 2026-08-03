@@ -48,6 +48,7 @@ const LoginPage = () => {
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showUpdatePopup, setShowUpdatePopup] = useState(false);
   const [loggedInUsername, setLoggedInUsername] = useState("");
 
   // Function to check if a role is any variation of "inactive"
@@ -302,9 +303,11 @@ const LoginPage = () => {
           // Show success popup
           setShowSuccessPopup(true);
 
-          // After 2 seconds, navigate to dashboard
+          // After 2 seconds, hide the success popup and show the "What's New" update popup.
+          // Navigation happens when the user closes the update popup (cross button).
           setTimeout(() => {
-            navigate("/dashboard/admin");
+            setShowSuccessPopup(false);
+            setShowUpdatePopup(true);
           }, 2000);
 
           showToast(
@@ -351,6 +354,12 @@ const LoginPage = () => {
 
   const togglePasswordVisibility = () => {
     setVisible(!visible);
+  };
+
+  // Close the "What's New" popup and continue to the dashboard.
+  const handleCloseUpdatePopup = () => {
+    setShowUpdatePopup(false);
+    navigate("/dashboard/admin");
   };
 
   return (
@@ -520,6 +529,141 @@ const LoginPage = () => {
                 Redirecting
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* What's New / Update Popup */}
+      {showUpdatePopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl transform transition-all duration-300 scale-100 opacity-100 relative max-h-[92vh] overflow-y-auto">
+            {/* Decorative background glow */}
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-10 w-32 h-32 bg-purple-400 rounded-full blur-3xl opacity-20"></div>
+
+            {/* Cross / Close button */}
+            <button
+              type="button"
+              onClick={handleCloseUpdatePopup}
+              aria-label="Close"
+              className="absolute top-4 right-4 z-20 flex items-center justify-center h-9 w-9 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors bg-transparent border-none outline-none focus:outline-none"
+              style={{ border: 'none' }}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-purple-50 border border-purple-100 mb-4 relative z-10">
+              <i className="fas fa-bullhorn text-2xl text-purple-600"></i>
+            </div>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-1 text-center relative z-10">
+              New Update
+            </h3>
+            <p className="text-sm text-gray-500 mb-6 text-center relative z-10">
+              नया अपडेट
+            </p>
+
+            <ul className="space-y-3 relative z-10">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full bg-purple-100 text-purple-600 text-sm font-bold">1</span>
+                <div>
+                  <p className="text-gray-800 font-medium">अब से आप फाइल अपलोड कर सकते हैं।</p>
+                  <p className="text-gray-500 text-sm">You can now upload a file.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full bg-purple-100 text-purple-600 text-sm font-bold">2</span>
+                <div>
+                  <p className="text-gray-800 font-medium">अब से आप एक साथ कई इमेज अपलोड कर सकते हैं।</p>
+                  <p className="text-gray-500 text-sm">You can now upload multiple images.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full bg-purple-100 text-purple-600 text-sm font-bold">3</span>
+                <div>
+                  <p className="text-gray-800 font-medium">अब से आप सीधे कैमरा से फोटो अपलोड कर सकते हैं।</p>
+                  <p className="text-gray-500 text-sm">You can now upload a photo directly from the camera.</p>
+                </div>
+              </li>
+            </ul>
+
+            {/* Tutorial: screenshot-style mockup showing where to upload */}
+            <div className="relative z-10 mt-6">
+              <p className="text-sm font-semibold text-gray-700">कैसे अपलोड करें? / How to upload?</p>
+              <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                टास्क टेबल में <span className="font-semibold text-purple-600">Upload</span> बटन पर क्लिक करें।
+                / Click the highlighted <span className="font-semibold text-purple-600">Upload</span> button in the tasks table.
+              </p>
+
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 shadow-inner">
+                {/* Fake browser/app top bar to look like a screenshot */}
+                <div className="flex items-center gap-1.5 px-1 pb-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+                  <span className="ml-2 text-[10px] text-gray-400 font-medium">Checklist Tasks</span>
+                </div>
+
+                {/* Fake table */}
+                <div className="rounded-lg overflow-hidden border border-gray-200 bg-white text-[11px]">
+                  <div className="grid grid-cols-3 bg-gray-100 text-gray-500 font-semibold uppercase tracking-wide">
+                    <div className="px-3 py-2">Task</div>
+                    <div className="px-3 py-2">Status</div>
+                    <div className="px-3 py-2">Upload Image</div>
+                  </div>
+                  <div className="grid grid-cols-3 items-center border-t border-gray-100">
+                    <div className="px-3 py-3 text-gray-700">Daily Report</div>
+                    <div className="px-3 py-3 text-gray-700">Yes</div>
+                    <div className="px-2 py-3 bg-green-50 relative">
+                      {/* Highlighted Upload button */}
+                      <span className="relative inline-flex">
+                        <span className="absolute -inset-1.5 rounded-lg ring-2 ring-purple-500 animate-pulse"></span>
+                        <span className="relative inline-flex items-center gap-1 rounded-md bg-white border border-purple-300 px-2 py-1 text-purple-700 font-semibold shadow-sm">
+                          <i className="fas fa-upload"></i> Upload
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow + callout pointing up to the Upload button */}
+                <div className="flex items-start justify-end gap-2 mt-1.5 pr-3">
+                  <div className="text-right pt-1">
+                    <p className="text-[11px] font-bold text-purple-700">यहाँ से अपलोड करें</p>
+                    <p className="text-[10px] text-gray-500">Tap here to upload</p>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-9 w-9 text-purple-600 animate-bounce">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
+                  </svg>
+                </div>
+
+                {/* Options that appear on tapping Upload */}
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
+                    <i className="fas fa-folder-open text-purple-500 text-base mb-1"></i>
+                    <span className="text-[10px] font-medium text-gray-700 leading-tight">फाइल<br />Files</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
+                    <i className="fas fa-images text-purple-500 text-base mb-1"></i>
+                    <span className="text-[10px] font-medium text-gray-700 leading-tight">कई इमेज<br />Gallery</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-lg bg-white border border-gray-200 py-2 px-1 text-center">
+                    <i className="fas fa-camera text-purple-500 text-base mb-1"></i>
+                    <span className="text-[10px] font-medium text-gray-700 leading-tight">कैमरा<br />Camera</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCloseUpdatePopup}
+              className="w-full mt-8 py-3 px-4 gradient-bg text-white rounded-xl font-semibold tracking-wide shadow-md hover:shadow-lg focus:outline-none transition-all duration-300 relative z-10 border-none"
+              style={{ border: 'none' }}
+            >
+              Got it / समझ गया
+            </button>
           </div>
         </div>
       )}

@@ -785,33 +785,37 @@ function AccountDataPage() {
                         <tr key={history._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             {history["col14"] ? (
-                                  <a
-                                    href={history["col14"]}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
-                                  >
-                                    <img
-                                      src={history["col14"]}
-                                      alt="Attachment"
-                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                      onError={(e) => {
-                                        e.target.onerror = null;
-                                        const url = history["col14"] || "";
-                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
-                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
-                                        } else {
-                                          e.target.src = "https://img.icons8.com/color/48/image.png";
-                                        }
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                <div className="flex gap-2 flex-wrap">
+                                  {history["col14"].split(',').map(url => url.trim()).filter(Boolean).map((url, index) => (
+                                    <a
+                                      key={index}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`Attachment ${index + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                            e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                          } else {
+                                            e.target.src = "https://img.icons8.com/color/48/image.png";
+                                          }
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </a>
-                                ) : (
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : (
                                   <span className="text-gray-400">
                                     No attachment
                                   </span>

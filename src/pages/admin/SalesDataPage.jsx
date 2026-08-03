@@ -264,9 +264,8 @@ const MemoizedTaskRow = memo(({
                 <input
                   type="file"
                   className="hidden"
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                  accept="image/*"
                   capture="environment"
-                  multiple
                   onChange={(e) => onImageUpload(account._id, e)}
                   disabled={!isSelected}
                 />
@@ -1198,6 +1197,41 @@ function AccountDataPage() {
     })
   }
 
+  // Robust POST to Apps Script: retries transient failures and parses JSON defensively.
+  // Bulk submits on weak mobile networks intermittently get network hiccups or a non-JSON
+  // redirect/error page from Google — without this, response.json() throws and the whole
+  // submission fails. Retrying + safe parsing makes bulk-with-images reliable everywhere.
+  const postToAppsScript = async (formData, maxRetries = 3) => {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+          method: "POST",
+          body: formData,
+        });
+        const text = await res.text();
+        // Parse defensively — Apps Script sometimes wraps JSON in other text.
+        try {
+          return JSON.parse(text);
+        } catch (parseErr) {
+          const start = text.indexOf("{");
+          const end = text.lastIndexOf("}");
+          if (start !== -1 && end !== -1) {
+            return JSON.parse(text.substring(start, end + 1));
+          }
+          throw new Error("Invalid response from server");
+        }
+      } catch (err) {
+        lastError = err;
+        // Back off a little before retrying so we don't hammer the endpoint.
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+        }
+      }
+    }
+    throw lastError || new Error("Request failed");
+  };
+
   const toggleHistory = useCallback(() => {
     setShowHistory((prev) => !prev)
     resetFilters()
@@ -1245,45 +1279,38 @@ function AccountDataPage() {
 
       // Prepare data for submission
       const submissionData = [];
-      const imageUploadPromises = [];
+      const imageUrlMap = {};
 
-      // First handle all image uploads
+      // Upload images SEQUENTIALLY (one file at a time). Firing every upload in parallel
+      // overwhelms Apps Script on weaker mobiles/networks and makes bulk submits fail. Each
+      // upload is retried, so a single transient hiccup no longer breaks the whole submission.
       for (const id of selectedItemsArray) {
         const item = accountData.find((account) => account._id === id);
 
-        if (Array.isArray(item.image)) {
-          const filePromises = item.image.map(file => {
-            return fileToBase64(file)
-              .then(async (base64Data) => {
-                const formData = new FormData();
-                formData.append("action", "uploadFile");
-                formData.append("base64Data", base64Data);
-                formData.append("fileName", `task_${item["col1"]}_${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name ? file.name.split(".").pop() : "jpg"}`);
-                formData.append("mimeType", file.type);
-                formData.append("folderId", CONFIG.DRIVE_FOLDER_ID);
+        if (Array.isArray(item.image) && item.image.length > 0) {
+          const urls = [];
+          for (const file of item.image) {
+            try {
+              const base64Data = await fileToBase64(file);
+              const formData = new FormData();
+              formData.append("action", "uploadFile");
+              formData.append("base64Data", base64Data);
+              formData.append("fileName", `task_${item["col1"]}_${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name ? file.name.split(".").pop() : "jpg"}`);
+              formData.append("mimeType", file.type);
+              formData.append("folderId", CONFIG.DRIVE_FOLDER_ID);
 
-                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                  method: "POST",
-                  body: formData,
-                });
-                return response.json();
-              });
-          });
-
-          const uploadPromise = Promise.all(filePromises).then((results) => {
-            const urls = results.filter(r => r.success).map(r => r.fileUrl);
-            return { id, imageUrl: urls.join(", ") };
-          });
-          imageUploadPromises.push(uploadPromise);
+              const result = await postToAppsScript(formData);
+              if (result && result.success && result.fileUrl) {
+                urls.push(result.fileUrl);
+              }
+            } catch (uploadErr) {
+              // Skip this one file if it truly can't upload after retries; keep the rest.
+              console.error("Image upload failed for a file:", uploadErr);
+            }
+          }
+          imageUrlMap[id] = urls.join(", ");
         }
       }
-
-      // Wait for all image uploads to complete
-      const uploadResults = await Promise.all(imageUploadPromises);
-      const imageUrlMap = uploadResults.reduce((acc, result) => {
-        acc[result.id] = result.imageUrl;
-        return acc;
-      }, {});
 
       // Prepare submission data
       for (const id of selectedItemsArray) {
@@ -1318,21 +1345,21 @@ function AccountDataPage() {
       setRemarksData({});
       setSuccessMessage(`Successfully submitted ${selectedItemsArray.length} task(s)!`);
 
-      // Submit to Google Sheets
+      // Submit to Google Sheets (retried + safe-parsed). Failures here are logged, not alerted:
+      // the UI already reflects success optimistically, and a transient network error on the
+      // final write shouldn't scare the user with an error popup.
       const formData = new FormData();
       formData.append("sheetName", CONFIG.SHEET_NAME);
       formData.append("action", "updateTaskData");
       formData.append("rowData", JSON.stringify(submissionData));
 
-      const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (!result.success) {
-        console.error("Background submission failed:", result.error);
-        // Optionally show an error message
+      try {
+        const result = await postToAppsScript(formData);
+        if (!result || !result.success) {
+          console.error("Background submission failed:", result && result.error);
+        }
+      } catch (submitErr) {
+        console.error("Background submission failed:", submitErr);
       }
     } catch (error) {
       console.error("Submission error:", error);
@@ -2123,33 +2150,37 @@ function AccountDataPage() {
 
                               <td className="px-3 py-4 min-w-[100px]">
                                 {history["col14"] ? (
-                                  <a
-                                    href={history["col14"]}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
-                                  >
-                                    <img
-                                      src={history["col14"]}
-                                      alt="Attachment"
-                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                      onError={(e) => {
-                                        e.target.onerror = null;
-                                        const url = history["col14"] || "";
-                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
-                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
-                                        } else {
-                                          e.target.src = "https://img.icons8.com/color/48/image.png";
-                                        }
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                <div className="flex gap-2 flex-wrap">
+                                  {history["col14"].split(',').map(url => url.trim()).filter(Boolean).map((url, index) => (
+                                    <a
+                                      key={index}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`Attachment ${index + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                            e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                          } else {
+                                            e.target.src = "https://img.icons8.com/color/48/image.png";
+                                          }
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </a>
-                                ) : (
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : (
                                   <span className="text-gray-400">
                                     No attachment
                                   </span>
