@@ -59,10 +59,37 @@ const releaseSlot = () => {
   if (next) next();
 };
 
+// Per-attempt timeout: on mobile networks (slow/unstable cellular, or a very large sheet
+// payload), a request can stall for minutes with no error and no response — nothing ever
+// tells the browser to give up. Without a timeout, the page just sits on "Loading..." forever.
+// Aborting a stuck attempt after ATTEMPT_TIMEOUT_MS and trying again keeps the worst case
+// bounded to well under a minute instead of 3+ minutes of silence.
+const ATTEMPT_TIMEOUT_MS = 20000;
+
+const fetchWithTimeout = async (args, timeoutMs) => {
+  // cache: 'no-store' forces every attempt to hit script.google.com/exec fresh instead of the
+  // browser silently reusing an earlier attempt's cached 302 redirect. Google Apps Script's
+  // redirect points to a one-time script.googleusercontent.com/macros/echo?... URL; if the
+  // browser's HTTP cache replays that same (already-consumed) redirect target on a retry, it
+  // 404s every time — which is exactly why a retry alone wasn't fixing repeated failures.
+  if (typeof AbortController === 'undefined') {
+    return originalFetch(args[0], { ...(args[1] || {}), cache: 'no-store' });
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const mergedArgs = [args[0], { ...(args[1] || {}), cache: 'no-store', signal: controller.signal }];
+    return await originalFetch(...mergedArgs);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 // Up to 3 total attempts with short, bounded delays (not exponential) — enough to smooth over
 // an intermittent server-side hiccup we can't fix from the frontend, without the 30-45s stacking
 // delay a longer exponential retry caused. If all 3 fail, that's surfaced immediately rather than
-// continuing to retry indefinitely.
+// continuing to retry indefinitely. Combined with the per-attempt timeout above, the absolute
+// worst case (3 stalled attempts) is ~62s instead of hanging for minutes.
 const GET_RETRY_DELAYS_MS = [400, 900];
 
 const fetchGetLimited = async (args) => {
@@ -71,7 +98,7 @@ const fetchGetLimited = async (args) => {
     let lastError;
     for (let attempt = 0; attempt <= GET_RETRY_DELAYS_MS.length; attempt++) {
       try {
-        const response = await originalFetch(...args);
+        const response = await fetchWithTimeout(args, ATTEMPT_TIMEOUT_MS);
         if (response.ok) return response;
         lastError = new Error(`Request failed: ${response.status}`);
       } catch (err) {
@@ -210,7 +237,9 @@ window.fetch = async (...args) => {
       }
     } catch (interceptorError) {
       console.error("Fetch interceptor error:", interceptorError);
-      return originalFetch(...args);
+      // Last-resort fallback still goes through the timeout wrapper — otherwise this single
+      // uncapped call could itself stall for minutes, undoing the whole point of the timeout above.
+      return fetchWithTimeout(args, ATTEMPT_TIMEOUT_MS);
     }
   }
 
