@@ -745,7 +745,11 @@ function AccountDataPage() {
 
           {loading ? (
             <div className="text-center py-10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+              <div className="relative inline-flex items-center justify-center w-12 h-12 mb-4">
+  <div className="absolute inset-0 rounded-full border-4 border-t-purple-600 border-b-purple-600 border-l-transparent border-r-transparent animate-spin shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
+  <div className="absolute inset-1 rounded-full border-4 border-r-pink-500 border-l-pink-500 border-t-transparent border-b-transparent animate-[spin_1.5s_linear_infinite_reverse] shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(147,51,234,1)]"></div>
+</div>
               <p className="text-purple-600">Loading account data...</p>
             </div>
           ) : error ? (
@@ -929,9 +933,42 @@ function AccountDataPage() {
                                 ${header.id === 'col12' ? 'bg-green-50' : ''}
                               `}
                             >
-                              <div className="text-sm text-gray-900">
-                                {history[header.id] || '—'}
-                              </div>
+                              {header.id === 'col14' ? (
+                                history[header.id] ? (
+                                  <a
+                                    href={history[header.id]}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
+                                  >
+                                    <img
+                                      src={history[header.id]}
+                                      alt="Attachment"
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        const url = history["col14"] || "";
+                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                        } else {
+                                          e.target.src = "https://img.icons8.com/color/48/image.png";
+                                        }
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                      </div>
+                                    </div>
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No attachment</span>
+                                )
+                              ) : (
+                                <div className="text-sm text-gray-900">
+                                  {history[header.id] || '—'}
+                                </div>
+                              )}
                             </td>
                           ))}
 
@@ -944,9 +981,42 @@ function AccountDataPage() {
                                 ${header.id === 'col15' ? 'bg-purple-50' : ''}
                               `}
                             >
-                              <div className="text-sm text-gray-900">
-                                {history[header.id] || '—'}
-                              </div>
+                              {header.id === 'col14' ? (
+                                history[header.id] ? (
+                                  <a
+                                    href={history[header.id]}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
+                                  >
+                                    <img
+                                      src={history[header.id]}
+                                      alt="Attachment"
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        const url = history["col14"] || "";
+                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                        } else {
+                                          e.target.src = "https://img.icons8.com/color/48/image.png";
+                                        }
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                      </div>
+                                    </div>
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No attachment</span>
+                                )
+                              ) : (
+                                <div className="text-sm text-gray-900">
+                                  {history[header.id] || '—'}
+                                </div>
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -1095,7 +1165,7 @@ function AccountDataPage() {
                               <input
                                 type="file"
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
                                 onChange={(e) => handleImageUpload(account._id, e)}
                                 disabled={!selectedItems.includes(account._id)}
                               />

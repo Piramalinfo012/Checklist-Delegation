@@ -19,14 +19,16 @@ import {
 
 
 // Custom Styled Dropdown Component
-const CustomDropdown = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
+const CustomDropdown = ({ options, value, onChange, placeholder, icon: Icon, className, searchable = false }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
+        setSearchTerm("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -34,6 +36,9 @@ const CustomDropdown = ({ options, value, onChange, placeholder, icon: Icon, cla
   }, []);
 
   const selectedOption = options.find(opt => opt.value === value);
+  const filteredOptions = searchable 
+    ? options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()))
+    : options;
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -50,21 +55,43 @@ const CustomDropdown = ({ options, value, onChange, placeholder, icon: Icon, cla
 
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top">
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {options.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center justify-between
-                  ${value === option.value ? 'bg-pink-50 text-pink-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
-              >
-                <span>{option.label}</span>
-                {value === option.value && <Check className="h-4 w-4 text-pink-500" />}
+          {searchable && (
+            <div className="p-2 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search staff..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all"
+                  autoFocus
+                />
+                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                  <Filter className="h-3.5 w-3.5 text-gray-400" />
+                </div>
               </div>
-            ))}
+            </div>
+          )}
+          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No results found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                  className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center justify-between
+                    ${value === option.value ? 'bg-pink-50 text-pink-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <span>{option.label}</span>
+                  {value === option.value && <Check className="h-4 w-4 text-pink-500" />}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1040,14 +1067,25 @@ export default function AdminDashboard() {
   const TasksOverviewChart = () => {
     return (
       <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={departmentData.barChartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="name" fontSize={12} stroke="#888888" tickLine={false} axisLine={false} />
-          <YAxis fontSize={12} stroke="#888888" tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="completed" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="pending" stackId="a" fill="#f87171" radius={[4, 4, 0, 0]} />
+        <BarChart data={departmentData.barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+          <XAxis dataKey="name" fontSize={12} stroke="#94a3b8" tickLine={false} axisLine={false} dy={10} />
+          <YAxis fontSize={12} stroke="#94a3b8" tickLine={false} axisLine={false} dx={-10} tickFormatter={(value) => `${value}`} />
+          <Tooltip 
+            cursor={{fill: 'rgba(0,0,0,0.02)'}}
+            contentStyle={{ 
+              borderRadius: '16px', 
+              border: '1px solid rgba(255,255,255,0.6)', 
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              background: 'rgba(255,255,255,0.85)',
+              backdropFilter: 'blur(12px)',
+              padding: '12px'
+            }} 
+            itemStyle={{ fontWeight: 500 }}
+          />
+          <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+          <Bar dataKey="completed" stackId="a" fill="#10b981" barSize={16} radius={[0, 0, 4, 4]} />
+          <Bar dataKey="pending" stackId="a" fill="#f59e0b" barSize={16} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     )
@@ -1055,16 +1093,37 @@ export default function AdminDashboard() {
 
   // Tasks Completion Chart Component
   const TasksCompletionChart = () => {
+    const COLORS = ['#10b981', '#f59e0b', '#f43f5e', '#6366f1'];
     return (
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
-          <Pie data={departmentData.pieChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
+          <Pie 
+            data={departmentData.pieChartData} 
+            cx="50%" 
+            cy="50%" 
+            innerRadius={80} 
+            outerRadius={105} 
+            paddingAngle={6} 
+            dataKey="value"
+            stroke="none"
+            cornerRadius={8}
+          >
             {departmentData.pieChartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip />
-          <Legend />
+          <Tooltip 
+            contentStyle={{ 
+              borderRadius: '16px', 
+              border: '1px solid rgba(255,255,255,0.6)', 
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              background: 'rgba(255,255,255,0.85)',
+              backdropFilter: 'blur(12px)',
+              padding: '12px'
+            }} 
+            itemStyle={{ fontWeight: 500, color: '#334155' }}
+          />
+          <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
         </PieChart>
       </ResponsiveContainer>
     )
@@ -1145,13 +1204,7 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         {/* MODIFIED: Updated header section to include profile image */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <h2 className="text-2xl font-bold tracking-tight" style={{
-            background: 'linear-gradient(to right, #9333EA, #DB2777)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent'
-          }}>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-700">
             CHECKLIST & DELEGATION
           </h2>
           <div className="flex items-center gap-4">
@@ -1218,18 +1271,20 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-all bg-white">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-tr-lg p-4">
-              <h3 className="text-sm font-medium text-blue-700">
+          <div className="rounded-2xl shadow-sm hover:shadow-md transition-all duration-300" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+            <div className="flex flex-row items-center justify-between p-4 pb-2">
+              <h3 className="text-sm font-medium text-blue-600">
                 Total Tasks
               </h3>
-              <ListTodo className="h-4 w-4 text-blue-500" />
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)' }}>
+                <ListTodo className="h-4 w-4 text-blue-500" />
+              </div>
             </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-blue-700">
+            <div className="p-4 pt-1">
+              <div className="text-3xl font-bold text-slate-800">
                 {departmentData.totalTasks}
               </div>
-              <p className="text-purple-600 text-sm">
+              <p className="text-slate-400 text-xs mt-1">
                 {dashboardType === "delegation"
                   ? `${isAdminUser()
                     ? "All tasks in delegation sheet"
@@ -1243,22 +1298,24 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-all bg-white">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-green-100 rounded-tr-lg p-4">
-              <h3 className="text-sm font-medium text-green-700">
+          <div className="rounded-2xl shadow-sm hover:shadow-md transition-all duration-300" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+            <div className="flex flex-row items-center justify-between p-4 pb-2">
+              <h3 className="text-sm font-medium text-emerald-600">
                 {dashboardType === "delegation"
                   ? "Completed Once"
                   : "Completed Tasks"}
               </h3>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              </div>
             </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-green-700">
+            <div className="p-4 pt-1">
+              <div className="text-3xl font-bold text-slate-800">
                 {dashboardType === "delegation"
                   ? departmentData.completedRatingOne
                   : departmentData.completedTasks}
               </div>
-              <p className="text-xs text-green-600">
+              <p className="text-xs text-slate-400 mt-1">
                 {dashboardType === "delegation"
                   ? "Tasks completed once"
                   : "Total completed till date"}
@@ -1266,26 +1323,28 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all bg-white">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-amber-50 to-amber-100 rounded-tr-lg p-4">
-              <h3 className="text-sm font-medium text-amber-700">
+          <div className="rounded-2xl shadow-sm hover:shadow-md transition-all duration-300" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+            <div className="flex flex-row items-center justify-between p-4 pb-2">
+              <h3 className="text-sm font-medium text-amber-600">
                 {dashboardType === "delegation"
                   ? "Completed Twice"
                   : "Pending Tasks"}
               </h3>
-              {dashboardType === "delegation" ? (
-                <CheckCircle2 className="h-4 w-4 text-amber-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-amber-500" />
-              )}
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)' }}>
+                {dashboardType === "delegation" ? (
+                  <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                ) : (
+                  <Clock className="h-4 w-4 text-amber-500" />
+                )}
+              </div>
             </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-amber-700">
+            <div className="p-4 pt-1">
+              <div className="text-3xl font-bold text-slate-800">
                 {dashboardType === "delegation"
                   ? departmentData.completedRatingTwo
                   : departmentData.pendingTasks}
               </div>
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-slate-400 mt-1">
                 {dashboardType === "delegation"
                   ? "Tasks completed twice"
                   : "Including today + overdue"}
@@ -1293,26 +1352,28 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-l-4 border-l-red-500 shadow-md hover:shadow-lg transition-all bg-white">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-red-50 to-red-100 rounded-tr-lg p-4">
-              <h3 className="text-sm font-medium text-red-700">
+          <div className="rounded-2xl shadow-sm hover:shadow-md transition-all duration-300" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+            <div className="flex flex-row items-center justify-between p-4 pb-2">
+              <h3 className="text-sm font-medium text-rose-600">
                 {dashboardType === "delegation"
                   ? "Completed 3+ Times"
                   : "Overdue Tasks"}
               </h3>
-              {dashboardType === "delegation" ? (
-                <CheckCircle2 className="h-4 w-4 text-red-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-              )}
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
+                {dashboardType === "delegation" ? (
+                  <CheckCircle2 className="h-4 w-4 text-rose-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-rose-500" />
+                )}
+              </div>
             </div>
-            <div className="p-4">
-              <div className="text-3xl font-bold text-red-700">
+            <div className="p-4 pt-1">
+              <div className="text-3xl font-bold text-slate-800">
                 {dashboardType === "delegation"
                   ? departmentData.completedRatingThreePlus
                   : departmentData.overdueTasks}
               </div>
-              <p className="text-xs text-red-600">
+              <p className="text-xs text-slate-400 mt-1">
                 {dashboardType === "delegation"
                   ? "Tasks completed 3+ times"
                   : "Past due (excluding today)"}
@@ -1322,21 +1383,21 @@ export default function AdminDashboard() {
         </div>
 
         {/* Task Navigation Tabs - Restored to 3 tabs for both modes */}
-        <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="grid grid-cols-3">
+        <div className="w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+          <div className="grid grid-cols-3 p-1.5 gap-1" style={{ background: 'rgba(255,255,255,0.3)' }}>
             <button
-              className={`py-3 text-center font-medium transition-colors ${taskView === "recent"
-                ? "bg-purple-600 text-white"
-                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
+              className={`py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${taskView === "recent"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
               onClick={() => setTaskView("recent")}
             >
               {dashboardType === "delegation" ? "Today Tasks" : "Recent Tasks"}
             </button>
             <button
-              className={`py-3 text-center font-medium transition-colors ${taskView === "upcoming"
-                ? "bg-purple-600 text-white"
-                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
+              className={`py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${taskView === "upcoming"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
               onClick={() => setTaskView("upcoming")}
             >
@@ -1345,9 +1406,9 @@ export default function AdminDashboard() {
                 : "Upcoming Tasks"}
             </button>
             <button
-              className={`py-3 text-center font-medium transition-colors ${taskView === "overdue"
-                ? "bg-purple-600 text-white"
-                : "bg-purple-100 text-gray-600 hover:bg-purple-200"
+              className={`py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${taskView === "overdue"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
               onClick={() => setTaskView("overdue")}
             >
@@ -1402,6 +1463,7 @@ export default function AdminDashboard() {
                   ]}
                   placeholder="Filter by Staff"
                   className="w-full"
+                  searchable={true}
                 />
               </div>
             </div>
@@ -1485,32 +1547,34 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
-          <div className="rounded-lg border border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-all bg-white">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-tr-lg p-4">
-              <h3 className="text-sm font-medium text-indigo-700">
+          <div className="rounded-2xl shadow-sm hover:shadow-md transition-all duration-300" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+            <div className="flex flex-row items-center justify-between p-4 pb-2">
+              <h3 className="text-sm font-medium text-indigo-600">
                 Task Completion Rate
               </h3>
-              <BarChart3 className="h-4 w-4 text-indigo-500" />
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                <BarChart3 className="h-4 w-4 text-indigo-500" />
+              </div>
             </div>
-            <div className="p-4">
+            <div className="p-4 pt-1">
               <div className="flex items-center justify-between">
-                <div className="text-3xl font-bold text-indigo-700">
+                <div className="text-3xl font-bold text-slate-800">
                   {departmentData.completionRate}%
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">
+                  <span className="inline-block w-3 h-3 bg-emerald-500 rounded-full"></span>
+                  <span className="text-xs text-slate-500">
                     Completed: {departmentData.completedTasks}
                   </span>
                   <span className="inline-block w-3 h-3 bg-amber-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">
+                  <span className="text-xs text-slate-500">
                     Total: {departmentData.totalTasks}
                   </span>
                 </div>
               </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full mt-2">
+              <div className="w-full h-2 rounded-full mt-2" style={{ background: 'rgba(0,0,0,0.06)' }}>
                 <div
-                  className="h-full bg-gradient-to-r from-green-500 to-amber-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-emerald-500 to-amber-400 rounded-full transition-all duration-500"
                   style={{ width: `${departmentData.completionRate}%` }}
                 ></div>
               </div>
@@ -1520,30 +1584,30 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div className="space-y-4">
-          <div className="bg-purple-100 rounded-md p-1 flex space-x-1">
+          <div className="rounded-2xl p-1.5 flex space-x-1" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.5)' }}>
             <button
               onClick={() => setActiveTab("overview")}
-              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "overview"
-                ? "bg-purple-600 text-white"
-                : "text-purple-700 hover:bg-purple-200"
+              className={`flex-1 py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${activeTab === "overview"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab("mis")}
-              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "mis"
-                ? "bg-purple-600 text-white"
-                : "text-purple-700 hover:bg-purple-200"
+              className={`flex-1 py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${activeTab === "mis"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
             >
               MIS Report
             </button>
             <button
               onClick={() => setActiveTab("staff")}
-              className={`flex-1 py-2 text-center rounded-full transition-colors ${activeTab === "staff"
-                ? "bg-purple-600 text-white"
-                : "text-purple-700 hover:bg-purple-200"
+              className={`flex-1 py-2.5 text-center text-sm font-medium rounded-xl transition-all duration-200 ${activeTab === "staff"
+                ? "bg-slate-800 text-white shadow-md"
+                : "text-slate-500 hover:bg-white/60"
                 }`}
             >
               Staff Performance
@@ -1553,12 +1617,12 @@ export default function AdminDashboard() {
           {activeTab === "overview" && (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="lg:col-span-4 rounded-lg border border-purple-200 shadow-md bg-white">
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
-                    <h3 className="text-purple-700 font-medium">
+                <div className="lg:col-span-4 rounded-2xl shadow-sm" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+                  <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
+                    <h3 className="text-slate-700 font-semibold">
                       Tasks Overview
                     </h3>
-                    <p className="text-purple-600 text-sm">
+                    <p className="text-slate-400 text-sm">
                       Task completion rate over time
                     </p>
                   </div>
@@ -1566,12 +1630,12 @@ export default function AdminDashboard() {
                     <TasksOverviewChart />
                   </div>
                 </div>
-                <div className="lg:col-span-3 rounded-lg border border-purple-200 shadow-md bg-white">
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
-                    <h3 className="text-purple-700 font-medium">
+                <div className="lg:col-span-3 rounded-2xl shadow-sm" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+                  <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
+                    <h3 className="text-slate-700 font-semibold">
                       Task Status
                     </h3>
-                    <p className="text-purple-600 text-sm">
+                    <p className="text-slate-400 text-sm">
                       Distribution of tasks by status
                     </p>
                   </div>
@@ -1580,12 +1644,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="rounded-lg border border-purple-200 shadow-md bg-white">
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
-                  <h3 className="text-purple-700 font-medium">
+              <div className="rounded-2xl shadow-sm" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
+                  <h3 className="text-slate-700 font-semibold">
                     Staff Task Summary
                   </h3>
-                  <p className="text-purple-600 text-sm">
+                  <p className="text-slate-400 text-sm">
                     Overview of tasks assigned to each staff member
                   </p>
                 </div>
@@ -1598,10 +1662,10 @@ export default function AdminDashboard() {
 
           {/* UPDATED: Modified MIS Report section for delegation mode */}
           {activeTab === "mis" && (
-            <div className="rounded-lg border border-purple-200 shadow-md bg-white">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
-                <h3 className="text-purple-700 font-medium">MIS Report</h3>
-                <p className="text-purple-600 text-sm">
+            <div className="rounded-2xl shadow-sm" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
+                <h3 className="text-slate-700 font-semibold">MIS Report</h3>
+                <p className="text-slate-400 text-sm">
                   {dashboardType === "delegation"
                     ? `${isAdminUser()
                       ? "Detailed delegation analytics - all tasks from sheet data"
@@ -2168,7 +2232,7 @@ export default function AdminDashboard() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
                   onChange={handleFileSelect}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                 />

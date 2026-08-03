@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, memo } from "react"
-import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit } from "lucide-react"
+import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 
 // Configuration object - Move all configurations here
@@ -211,53 +211,85 @@ const MemoizedTaskRow = memo(({
 
       <td className="px-3 py-4 bg-green-50 min-w-[120px]">
         {account.image ? (
-          <div className={`flex items-center ${isDisabled ? "opacity-50" : ""}`}>
-            <img
-              src={
-                typeof account.image === "string"
-                  ? account.image
-                  : URL.createObjectURL(account.image)
-              }
-              alt="Receipt"
-              className="h-10 w-10 object-cover rounded-md mr-2 flex-shrink-0"
-            />
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs text-gray-500 break-words">
-                {account.image instanceof File ? account.image.name : "Uploaded Receipt"}
-              </span>
-              {account.image instanceof File ? (
-                <span className="text-xs text-green-600 font-medium">Ready to upload</span>
-              ) : (
-                <button
-                  className="text-xs text-purple-600 hover:text-purple-800 break-words font-medium"
-                  onClick={() => window.open(account.image, "_blank")}
-                >
-                  View Full Image
-                </button>
-              )}
-            </div>
+          <div className={`flex flex-col gap-2 ${isDisabled ? "opacity-50" : ""}`}>
+            {Array.isArray(account.image) ? (
+              account.image.map((file, idx) => (
+                <div key={idx} className="flex items-center">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Receipt"
+                    className="h-8 w-8 object-cover rounded-md mr-2 flex-shrink-0"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs text-gray-500 truncate max-w-[80px]" title={file.name}>
+                      {file.name}
+                    </span>
+                    <span className="text-xs text-green-600 font-medium">Ready</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center">
+                <img
+                  src={account.image}
+                  alt="Receipt"
+                  className="h-10 w-10 object-cover rounded-md mr-2 flex-shrink-0"
+                />
+                <div className="flex flex-col min-w-0">
+                  <button
+                    className="text-xs text-purple-600 hover:text-purple-800 break-words font-medium text-left"
+                    onClick={() => window.open(account.image, "_blank")}
+                  >
+                    View Full Image
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <label
-            className={`flex items-center cursor-pointer ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 font-medium" : "text-purple-600"} hover:text-purple-800 ${isDisabled ? "opacity-50" : ""}`}
-          >
-            <Upload className="h-4 w-4 mr-1 flex-shrink-0" />
-            <span className="text-xs break-words font-medium">
-              {account["col9"]?.toUpperCase() === "YES"
-                ? "Required Upload"
-                : "Upload Receipt Image"}
-              {account["col9"]?.toUpperCase() === "YES" && (
-                <span className="text-red-500 ml-1">*</span>
-              )}
-            </span>
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => onImageUpload(account._id, e)}
-              disabled={!isSelected}
-            />
-          </label>
+          <div className="flex flex-col gap-2">
+            {account["col9"]?.toUpperCase() === "YES" && (
+              <span className="text-xs text-red-600 font-medium break-words">
+                Required Upload *
+              </span>
+            )}
+            <div className="flex gap-3">
+              {/* Camera Icon */}
+              <label
+                className={`flex flex-col items-center justify-center cursor-pointer p-2 rounded-md border border-gray-200 bg-gray-50 hover:bg-purple-50 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isDisabled || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+                title="Take Photo"
+              >
+                <Camera className="h-5 w-5 mb-1" />
+                <span className="text-[10px] font-medium">Camera</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                  capture="environment"
+                  multiple
+                  onChange={(e) => onImageUpload(account._id, e)}
+                  disabled={!isSelected}
+                />
+              </label>
+
+              {/* Gallery Icon */}
+              <label
+                className={`flex flex-col items-center justify-center cursor-pointer p-2 rounded-md border border-gray-200 bg-gray-50 hover:bg-purple-50 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isDisabled || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+                title="Choose from Gallery"
+              >
+                <ImageIcon className="h-5 w-5 mb-1" />
+                <span className="text-[10px] font-medium">Gallery</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                  multiple
+                  onChange={(e) => onImageUpload(account._id, e)}
+                  disabled={!isSelected}
+                />
+              </label>
+            </div>
+          </div>
         )}
       </td>
     </tr>
@@ -283,6 +315,7 @@ function AccountDataPage() {
   const [userRole, setUserRole] = useState("")
   const [username, setUsername] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("") // New filter for status
+  const [attachmentFilter, setAttachmentFilter] = useState("") // New filter for attachment
   const [showFilters, setShowFilters] = useState(false) // Toggle for filter section
   const [nameSearchTerm, setNameSearchTerm] = useState("") // Search term for name dropdown
   const [editingRemarks, setEditingRemarks] = useState({});
@@ -476,6 +509,7 @@ function AccountDataPage() {
     setEndDate("")
     setSelectedStatus("")
     setNameSearchTerm("")
+    setAttachmentFilter("")
   }, [])
 
   // Admin functions for history management
@@ -776,7 +810,15 @@ function AccountDataPage() {
             if (itemDate > endDateObj) matchesDateRange = false
           }
         }
-        return matchesSearch && matchesMember && matchesStatus && matchesDateRange
+
+        let matchesAttachment = true;
+        if (attachmentFilter === "NoPic") {
+          matchesAttachment = !item["col14"] || item["col14"].trim() === "";
+        } else if (attachmentFilter === "HasPic") {
+          matchesAttachment = !!item["col14"] && item["col14"].trim() !== "";
+        }
+
+        return matchesSearch && matchesMember && matchesStatus && matchesDateRange && matchesAttachment
       })
       .sort((a, b) => {
         const dateStrA = a["col10"] || ""
@@ -787,7 +829,7 @@ function AccountDataPage() {
         if (!dateB) return -1
         return dateB.getTime() - dateA.getTime()
       })
-  }, [historyData, searchTerm, selectedMembers, selectedStatus, startDate, endDate, parseDateFromDDMMYYYY])
+  }, [historyData, searchTerm, selectedMembers, selectedStatus, startDate, endDate, parseDateFromDDMMYYYY, attachmentFilter])
 
   const displayedHistoryData = useMemo(() => {
     return filteredHistoryData.slice(0, historyDisplayLimit);
@@ -1131,17 +1173,15 @@ function AccountDataPage() {
   }, [filteredAccountData, displayLimit]);
 
   const handleImageUpload = useCallback(async (id, e) => {
-    const file = e.target.files[0]
-    if (!file) return
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    // Clean up previous object URL to prevent memory leaks
     setAccountData((prev) => {
       const updated = prev.map((item) => {
         if (item._id === id) {
-          if (item.image && typeof item.image !== 'string' && item.image instanceof File) {
-            URL.revokeObjectURL(item.image)
-          }
-          return { ...item, image: file }
+          // If we want to revoke object URLs, we'd need to track them, 
+          // but creating them in render is fine for small amounts.
+          return { ...item, image: files }
         }
         return item
       })
@@ -1186,7 +1226,7 @@ function AccountDataPage() {
     const missingRequiredImages = selectedItemsArray.filter((id) => {
       const item = accountData.find((account) => account._id === id);
       const requiresAttachment = item["col9"] && item["col9"].toUpperCase() === "YES";
-      return requiresAttachment && !item.image;
+      return requiresAttachment && (!item.image || (Array.isArray(item.image) && item.image.length === 0));
     });
 
     if (missingRequiredImages.length > 0) {
@@ -1211,29 +1251,29 @@ function AccountDataPage() {
       for (const id of selectedItemsArray) {
         const item = accountData.find((account) => account._id === id);
 
-        if (item.image instanceof File) {
-          const uploadPromise = fileToBase64(item.image)
-            .then(async (base64Data) => {
-              const formData = new FormData();
-              formData.append("action", "uploadFile");
-              formData.append("base64Data", base64Data);
-              formData.append("fileName", `task_${item["col1"]}_${Date.now()}.${item.image.name.split(".").pop()}`);
-              formData.append("mimeType", item.image.type);
-              formData.append("folderId", CONFIG.DRIVE_FOLDER_ID);
+        if (Array.isArray(item.image)) {
+          const filePromises = item.image.map(file => {
+            return fileToBase64(file)
+              .then(async (base64Data) => {
+                const formData = new FormData();
+                formData.append("action", "uploadFile");
+                formData.append("base64Data", base64Data);
+                formData.append("fileName", `task_${item["col1"]}_${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name ? file.name.split(".").pop() : "jpg"}`);
+                formData.append("mimeType", file.type);
+                formData.append("folderId", CONFIG.DRIVE_FOLDER_ID);
 
-              const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: "POST",
-                body: formData,
+                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                  method: "POST",
+                  body: formData,
+                });
+                return response.json();
               });
-              return response.json();
-            })
-            .then((result) => {
-              if (result.success) {
-                return { id, imageUrl: result.fileUrl };
-              }
-              return { id, imageUrl: "" };
-            });
+          });
 
+          const uploadPromise = Promise.all(filePromises).then((results) => {
+            const urls = results.filter(r => r.success).map(r => r.fileUrl);
+            return { id, imageUrl: urls.join(", ") };
+          });
           imageUploadPromises.push(uploadPromise);
         }
       }
@@ -1305,9 +1345,8 @@ function AccountDataPage() {
   // Convert Set to Array for display
   const selectedItemsCount = selectedItems.size
 
-  // Filter Section Component// Filter Section Component
-  const FilterSection = () => {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Filter Section inline rendering
+  const renderFilterSection = () => {
     const filteredMembersList = getFilteredMembersList().filter(member =>
       member.toLowerCase().includes(nameSearchTerm.toLowerCase())
     );
@@ -1323,7 +1362,7 @@ function AccountDataPage() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-md p-2 min-w-[130px]"
+              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-pointer"
             >
               {showHistory ? (
                 <>
@@ -1360,7 +1399,7 @@ function AccountDataPage() {
                     value={nameSearchTerm}
                     onChange={(e) => setNameSearchTerm(e.target.value)}
                     onClick={() => setIsDropdownOpen(true)}
-                    className="pl-8 pr-4 py-2 border border-gray-200 rounded-md text-sm w-[200px] focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="bg-white border-2 border-purple-300 rounded-xl pl-8 pr-4 py-2 text-sm w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-gray-500"
                   />
                 </div>
 
@@ -1430,7 +1469,7 @@ function AccountDataPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-md p-1"
+                  className="bg-white border-2 border-purple-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-pointer"
                 />
               </div>
               <div className="flex items-center">
@@ -1445,11 +1484,29 @@ function AccountDataPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-md p-1"
+                  className="bg-white border-2 border-purple-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-pointer"
                 />
               </div>
             </div>
           </div>
+
+          {/* Attachment Filter */}
+          {showHistory && (
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-purple-700 mb-1">
+                Filter by Picture:
+              </label>
+              <select
+                value={attachmentFilter}
+                onChange={(e) => setAttachmentFilter(e.target.value)}
+                className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-pointer"
+              >
+                <option value="">All Uploads</option>
+                <option value="HasPic">Pic Uploaded</option>
+                <option value="NoPic">No Pic Uploaded</option>
+              </select>
+            </div>
+          )}
 
           {/* Clear Filters Button */}
           {(selectedMembers.length > 0 ||
@@ -1574,18 +1631,17 @@ function AccountDataPage() {
           </h1>
 
           {/* Search Input */}
-          <div className="relative w-full sm:w-auto flex-grow max-w-md mx-auto sm:mx-0">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400"
-              size={16}
-            />
+          <div className="relative w-full sm:w-auto flex-grow max-w-md mx-auto sm:mx-0 group">
             <input
               type="text"
               placeholder={showHistory ? "Search history..." : "Search tasks..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full text-sm bg-purple-50/30 transition-all hover:bg-white"
+              className="pl-10 pr-4 py-2.5 border border-purple-200/60 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/30 w-full text-sm bg-white/60 backdrop-blur-sm transition-all shadow-sm hover:shadow-md hover:bg-white"
             />
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-400 group-hover:text-purple-600 transition-colors">
+              <Search size={16} strokeWidth={2.5} />
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -1721,11 +1777,15 @@ function AccountDataPage() {
           </div>
 
           {/* Filter Section */}
-          {showFilters && <FilterSection />}
+          {showFilters && renderFilterSection()}
 
           {loading ? (
             <div className="text-center py-10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+              <div className="relative inline-flex items-center justify-center w-12 h-12 mb-4">
+  <div className="absolute inset-0 rounded-full border-4 border-t-purple-600 border-b-purple-600 border-l-transparent border-r-transparent animate-spin shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
+  <div className="absolute inset-1 rounded-full border-4 border-r-pink-500 border-l-pink-500 border-t-transparent border-b-transparent animate-[spin_1.5s_linear_infinite_reverse] shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(147,51,234,1)]"></div>
+</div>
               <p className="text-purple-600">Loading task data...</p>
             </div>
           ) : error ? (
@@ -2015,51 +2075,6 @@ function AccountDataPage() {
 
                               <td className="px-3 py-4 min-w-[100px]">
                                 <div className="text-sm text-gray-900 break-words">
-                                  {history["col4"] || "—"}
-                                </div>
-                              </td>
-                              <td className="px-3 py-4 min-w-[200px]">
-                                <div
-                                  className="text-sm text-gray-900 break-words"
-                                  title={history["col5"]}
-                                >
-                                  {history["col5"] || "—"}
-                                </div>
-                              </td>
-                              <td className="px-3 py-4 bg-blue-50 min-w-[80px]">
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full break-words ${history["col12"] === "Yes"
-                                    ? "bg-green-100 text-green-800"
-                                    : history["col12"] === "No"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-gray-100 text-gray-800"
-                                    }`}
-                                >
-                                  {history["col12"] || "—"}
-                                </span>
-                              </td>
-                              <td className="px-3 py-4 bg-purple-50 min-w-[150px]">
-                                {editingRemarks[history._id] ? (
-                                  <input
-                                    type="text"
-                                    defaultValue={history["col13"] || ""}
-                                    onChange={(e) =>
-                                      setTempRemarks((prev) => ({
-                                        ...prev,
-                                        [history._id]: e.target.value,
-                                      }))
-                                    }
-                                    className="border rounded-md px-2 py-1 w-full text-sm"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span className="text-sm text-gray-900 break-words">
-                                    {history["col13"] || "—"}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-3 py-4 bg-yellow-50 min-w-[140px]">
-                                <div className="text-sm text-gray-900 break-words">
                                   {history["col6"] ? (
                                     <div>
                                       <div className="font-medium break-words">
@@ -2112,17 +2127,27 @@ function AccountDataPage() {
                                     href={history["col14"]}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline flex items-center break-words"
+                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
                                   >
                                     <img
-                                      src={
-                                        history["col14"] ||
-                                        "/placeholder.svg?height=32&width=32"
-                                      }
+                                      src={history["col14"]}
                                       alt="Attachment"
-                                      className="h-8 w-8 object-cover rounded-md mr-2 flex-shrink-0"
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        const url = history["col14"] || "";
+                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                        } else {
+                                          e.target.src = "https://img.icons8.com/color/48/image.png";
+                                        }
+                                      }}
                                     />
-                                    <span className="break-words">View</span>
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                      </div>
+                                    </div>
                                   </a>
                                 ) : (
                                   <span className="text-gray-400">

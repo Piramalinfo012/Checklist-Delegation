@@ -1408,20 +1408,20 @@ function DelegationDataPage() {
         <div className="w-full flex flex-wrap items-center gap-4 mt-4 mb-4">
           {/* Name Filter */}
           <div className="flex items-center">
-            <select
+            <input
               id="name-filter"
+              list="name-options"
+              placeholder="All Names..."
               value={nameFilter}
               onChange={(e) => setNameFilter(e.target.value)}
-              className="border border-purple-300 rounded-lg px-3 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
+              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
               disabled={userRole !== "admin" && uniqueNames.length <= 1}
-            >
-              <option value="">All Names</option>
+            />
+            <datalist id="name-options">
               {uniqueNames.map((name) => (
-                <option key={name} value={name} className="uppercase">
-                  {name}
-                </option>
+                <option key={name} value={name} className="uppercase" />
               ))}
-            </select>
+            </datalist>
           </div>
 
           {/* Date Filter */}
@@ -1440,7 +1440,7 @@ function DelegationDataPage() {
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, start: e.target.value }))
                 }
-                className="border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
+                className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -1457,33 +1457,30 @@ function DelegationDataPage() {
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, end: e.target.value }))
                 }
-                className="border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
+                className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100"
               />
             </div>
           </div>
 
           {/* Status Filter */}
           <div className="flex items-center">
-            <select
+            <input
               id="status-filter"
+              list="status-options"
+              placeholder="All Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-purple-300 rounded-lg px-3 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
-            >
+              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
+            />
+            <datalist id="status-options">
               <option value="">
                 All Status ({filteredAccountData.length})
               </option>
-              {/* <option value="Done">✅ Done ({statusCounts.Done})</option> */}
-              <option value="Pending">
-                🕒 Pending ({statusCounts.Pending})
-              </option>
-              <option value="Verify Pending">
-                🔍 Verify Pending ({statusCounts["Verify Pending"]})
-              </option>
-              <option value="Planned">
-                📜 Planned ({statusCounts.Planned})
-              </option>
-            </select>
+              {/* <option value="Done" /> */}
+              <option value="Pending" />
+              <option value="Verify Pending" />
+              <option value="Planned" />
+            </datalist>
           </div>
 
           {/* Clear Filters Button */}
@@ -1547,7 +1544,11 @@ function DelegationDataPage() {
 
           {loading ? (
             <div className="text-center py-10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+              <div className="relative inline-flex items-center justify-center w-12 h-12 mb-4">
+  <div className="absolute inset-0 rounded-full border-4 border-t-purple-600 border-b-purple-600 border-l-transparent border-r-transparent animate-spin shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
+  <div className="absolute inset-1 rounded-full border-4 border-r-pink-500 border-l-pink-500 border-t-transparent border-b-transparent animate-[spin_1.5s_linear_infinite_reverse] shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(147,51,234,1)]"></div>
+</div>
               <p className="text-purple-600">Loading task data...</p>
             </div>
           ) : error ? (
@@ -1764,129 +1765,32 @@ function DelegationDataPage() {
                               </td>
                               {/* NEW: Submission Status Column */}
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${submissionStatus.color} ${submissionStatus.textColor}`}
-                                >
-                                  {submissionStatus.status}
-                                </span>
-                              </td>
-                              {/* Admin Select Checkbox */}
-                              {userRole === "admin" && (
-                                <td className="px-3 py-4 w-12">
-                                  <div className="flex flex-col items-center">
-                                    <input
-                                      type="checkbox"
-                                      className={`h-4 w-4 rounded border-gray-300 ${isAdminDone
-                                        ? "text-green-600 bg-green-100"
-                                        : "text-green-600 focus:ring-green-500"
-                                        }`}
-                                      checked={isAdminDone || isSelected}
-                                      disabled={isAdminDone}
-                                      onChange={() => {
-                                        if (!isAdminDone) {
-                                          setSelectedHistoryItems((prev) =>
-                                            isSelected
-                                              ? prev.filter(
-                                                (item) =>
-                                                  item._id !== history._id
-                                              )
-                                              : [...prev, history]
-                                          );
-                                        }
-                                      }}
-                                    />
-                                    <span
-                                      className={`text-xs mt-1 text-center break-words ${isAdminDone
-                                        ? "text-green-600"
-                                        : "text-gray-400"
-                                        }`}
-                                    >
-                                      {isAdminDone ? "Done" : "Mark Done"}
-                                    </span>
-                                  </div>
-                                </td>
-                              )}
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {history["col0"] || "—"}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
-                                  {history["col1"] || "—"}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 min-w-[250px]">
-                                <div
-                                  className="text-sm text-gray-900 max-w-md whitespace-normal break-words"
-                                  title={history["col8"]}
-                                >
-                                  {history["col8"] || "—"}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 bg-purple-50 min-w-[200px]">
-                                {editingRemarks[history._id] ? (
-                                  <input
-                                    type="text"
-                                    defaultValue={history["col4"] || ""}
-                                    onChange={(e) =>
-                                      setTempRemarks((prev) => ({
-                                        ...prev,
-                                        [history._id]: e.target.value,
-                                      }))
-                                    }
-                                    className="border rounded-md px-2 py-1 w-full text-sm"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span className="text-sm text-gray-900 max-w-md whitespace-normal break-words">
-                                    {history["col4"] || "—"}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${history["col2"] === "Done"
-                                    ? "bg-green-100 text-green-800"
-                                    : history["col2"] === "Extend date"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-gray-100 text-gray-800"
-                                    }`}
-                                >
-                                  {history["col2"] || "—"}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
-                                  {formatDateForDisplay(history["col3"]) || "—"}
-                                </div>
-                              </td>
-                              {/* <td className="px-6 py-4 bg-purple-50 min-w-[200px]">
-                              <div
-                                className="text-sm text-gray-900 max-w-md whitespace-normal break-words"
-                                title={history["col4"]}
-                              >
-                                {history["col4"] || "—"}
-                              </div>
-                            </td> */}
-
-                              <td className="px-6 py-4 whitespace-nowrap">
                                 {history["col5"] ? (
                                   <a
                                     href={history["col5"]}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline flex items-center"
+                                    className="relative group block w-14 h-14 rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all flex-shrink-0"
                                   >
                                     <img
-                                      src={
-                                        history["col5"] ||
-                                        "/api/placeholder/32/32"
-                                      }
+                                      src={history["col5"]}
                                       alt="Attachment"
-                                      className="h-8 w-8 object-cover rounded-md mr-2"
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        const url = history["col5"] || "";
+                                        if (url.match(/\.pdf|\.doc|\.xls|\.csv|\.txt|\.zip|\.rar/i)) {
+                                          e.target.src = "https://img.icons8.com/color/48/document--v1.png";
+                                        } else {
+                                          e.target.src = "https://img.icons8.com/color/48/image.png";
+                                        }
+                                      }}
                                     />
-                                    View
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                      </div>
+                                    </div>
                                   </a>
                                 ) : (
                                   <span className="text-gray-400">
@@ -2028,8 +1932,8 @@ function DelegationDataPage() {
                                   className="mt-1 block w-full border rounded-md px-2 py-1 text-sm border-gray-300 disabled:bg-gray-100"
                                 >
                                   <option value="">Select</option>
-                                  <option value="Done">Done</option>
-                                  <option value="Extend date">Extend date</option>
+                                  <option value="Done" />
+                                  <option value="Extend date" />
                                 </select>
                               </div>
 
@@ -2094,7 +1998,7 @@ function DelegationDataPage() {
                                 <label className={`flex items-center cursor-pointer text-xs text-purple-600 hover:text-purple-800`}>
                                   <Upload className="h-4 w-4 mr-1" />
                                   <span>{account["col9"]?.toUpperCase() === "YES" ? "Required Upload" : "Upload Image"}</span>
-                                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(account._id, e)} disabled={!isSelected || isTaskDisabled(account["col20"], userRole)} />
+                                  <input type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={(e) => handleImageUpload(account._id, e)} disabled={!isSelected || isTaskDisabled(account["col20"], userRole)} />
                                 </label>
                               )}
                             </div>
@@ -2319,8 +2223,8 @@ function DelegationDataPage() {
                                   className="border border-gray-300 rounded-md px-2 py-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
                                   <option value="">Select</option>
-                                  <option value="Done">Done</option>
-                                  <option value="Extend date">Extend date</option>
+                                  <option value="Done" />
+                                  <option value="Extend date" />
                                 </select>
                               </td>
                               <td
@@ -2442,7 +2346,7 @@ function DelegationDataPage() {
                                     <input
                                       type="file"
                                       className="hidden"
-                                      accept="image/*"
+                                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
                                       onChange={(e) =>
                                         handleImageUpload(account._id, e)
                                       }

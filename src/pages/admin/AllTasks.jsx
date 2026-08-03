@@ -656,7 +656,7 @@ const AllTasks = () => {
                           id={`file-${task._id}`}
                           onChange={(e) => handleFileSelect(task._id, e)}
                           className="hidden"
-                          accept="image/*"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
                           disabled={!selectedTasks.includes(task._id)}
                         />
                         <label

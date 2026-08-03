@@ -11,7 +11,7 @@ import AdminDataPage from "./pages/admin/admin-data-page"
 import AccountDataPage from "./pages/delegation"
 import "./index.css"
 import QuickTask from "./pages/QuickTask"
-import License from "./pages/License"
+
 import TrainingVideo from "./pages/TrainingVideo"
 import Calendar from "./pages/Calendar"
 
@@ -100,14 +100,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/dashboard/license"
-          element={
-            <ProtectedRoute>
-              <License />
-            </ProtectedRoute>
-          }
-        />
+
 
         <Route
           path="/dashboard/traning-video"
@@ -135,9 +128,12 @@ function App() {
         <Route path="/admin/assign-task" element={<Navigate to="/dashboard/assign-task" replace />} />
         <Route path="/admin/data/:category" element={<Navigate to="/dashboard/data/:category" replace />} />
         <Route path="/admin/calendar" element={<Navigate to="/dashboard/calendar" replace />} />
-        <Route path="/admin/license" element={<Navigate to="/dashboard/license" replace />} />
+
         <Route path="/admin/traning-video" element={<Navigate to="/dashboard/traning-video" replace />} />
         <Route path="/user/*" element={<Navigate to="/dashboard/admin" replace />} />
+        
+        {/* Catch-all route to redirect unknown URLs to dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard/admin" replace />} />
       </Routes>
     </Router>
   )

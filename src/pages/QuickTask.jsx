@@ -16,6 +16,7 @@ export default function QuickTask() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [activeTab, setActiveTab] = useState('checklist');
   const [nameFilter, setNameFilter] = useState('');
+  const [nameSearchTerm, setNameSearchTerm] = useState('');
   const [freqFilter, setFreqFilter] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -39,9 +40,6 @@ export default function QuickTask() {
   // Auto-detect current user from login session and get role from Whatsapp sheet
   const fetchCurrentUser = useCallback(async () => {
     try {
-      setUserLoading(true);
-      setError(null);
-
       // Get user data from your login system (sessionStorage)
       const loggedInUsername = sessionStorage.getItem('username');
 
@@ -49,7 +47,26 @@ export default function QuickTask() {
         throw new Error("No user logged in. Please log in to access tasks.");
       }
 
-      // Fetch user role from Whatsapp sheet
+      // Check cache first
+      const cacheKey = `whatsapp_user_cache_${loggedInUsername}`;
+      const cachedDataStr = localStorage.getItem(cacheKey);
+      let hasCache = false;
+      if (cachedDataStr) {
+        try {
+          const foundUser = JSON.parse(cachedDataStr);
+          setCurrentUser(foundUser.name);
+          setUserRole(foundUser.role);
+          setUserLoading(false); // unlock subsequent fetches instantly
+          hasCache = true;
+        } catch (e) { console.error("Cache error", e); }
+      }
+
+      if (!hasCache) {
+        setUserLoading(true);
+      }
+      setError(null);
+
+      // Background fetch
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.WHATSAPP_SHEET}`);
       const data = await response.json();
 
@@ -78,6 +95,7 @@ export default function QuickTask() {
         if (foundUser) {
           setCurrentUser(foundUser.name);
           setUserRole(foundUser.role);
+          try { localStorage.setItem(`whatsapp_user_cache_${loggedInUsername}`, JSON.stringify(foundUser)); } catch(e) { console.warn('Cache full'); }
         } else {
           throw new Error(`User "${loggedInUsername}" not found in Whatsapp sheet. Please contact administrator.`);
         }
@@ -96,9 +114,21 @@ export default function QuickTask() {
     if (!currentUser || userLoading) return;
 
     try {
-      setLoading(true);
+      const cacheKey = `checklist_cache_${currentUser}`;
+      const cachedDataStr = localStorage.getItem(cacheKey);
+      let hasCache = false;
+      if (cachedDataStr) {
+        try {
+          const cachedTasks = JSON.parse(cachedDataStr);
+          setTasks(cachedTasks);
+          setLoading(false);
+          hasCache = true;
+        } catch (e) {}
+      }
 
-      // Fetch from Checklist sheet
+      if (!hasCache) setLoading(true);
+
+      // Background fetch
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.CHECKLIST_SHEET}`);
       const data = await response.json();
 
@@ -155,6 +185,7 @@ export default function QuickTask() {
         }
 
         setTasks(filteredData);
+        try { localStorage.setItem(`checklist_cache_${currentUser}`, JSON.stringify(filteredData)); } catch(e) { console.warn('Cache full'); }
       } else {
         throw new Error("Invalid checklist data format");
       }
@@ -170,9 +201,21 @@ export default function QuickTask() {
     if (!currentUser || userLoading) return;
 
     try {
-      setDelegationLoading(true);
+      const cacheKey = `delegation_cache_${currentUser}`;
+      const cachedDataStr = localStorage.getItem(cacheKey);
+      let hasCache = false;
+      if (cachedDataStr) {
+        try {
+          const cachedTasks = JSON.parse(cachedDataStr);
+          setDelegationTasks(cachedTasks);
+          setDelegationLoading(false);
+          hasCache = true;
+        } catch (e) {}
+      }
 
-      // Fetch from Delegation sheet
+      if (!hasCache) setDelegationLoading(true);
+
+      // Background fetch
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.DELEGATION_SHEET}`);
       const data = await response.json();
 
@@ -217,6 +260,7 @@ export default function QuickTask() {
         }
 
         setDelegationTasks(filteredData);
+        try { localStorage.setItem(`delegation_cache_${currentUser}`, JSON.stringify(filteredData)); } catch(e) { console.warn('Cache full'); }
       } else {
         throw new Error("Invalid delegation data format");
       }
@@ -454,8 +498,21 @@ export default function QuickTask() {
                   />
                 </button>
                 {dropdownOpen.name && (
-                  <div className="absolute z-50 mt-1 w-56 rounded-md bg-white shadow-lg border border-gray-200 max-h-60 overflow-auto">
-                    <div className="py-1">
+                  <div className="absolute z-50 mt-1 w-56 rounded-md bg-white shadow-lg border border-gray-200 max-h-60 flex flex-col">
+                    <div className="p-2 border-b border-gray-100 flex-shrink-0 bg-white sticky top-0 z-10">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
+                        <input
+                          type="text"
+                          placeholder="Type name..."
+                          value={nameSearchTerm}
+                          onChange={(e) => setNameSearchTerm(e.target.value)}
+                          className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-gray-50 hover:bg-white transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    <div className="py-1 overflow-y-auto">
                       <button
                         onClick={clearNameFilter}
                         className={`block w-full text-left px-4 py-2 text-sm ${!nameFilter
@@ -465,7 +522,7 @@ export default function QuickTask() {
                       >
                         All Names
                       </button>
-                      {currentNames.map((name) => (
+                      {currentNames.filter(n => n.toLowerCase().includes(nameSearchTerm.toLowerCase())).map((name) => (
                         <button
                           key={name}
                           onClick={() => handleNameFilterSelect(name)}

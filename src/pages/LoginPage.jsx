@@ -4,6 +4,34 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
+const TypingText = ({ text }) => {
+  const [displayed, setDisplayed] = useState("");
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index < text.length) {
+      const timer = setTimeout(() => {
+        setDisplayed((prev) => prev + text.charAt(index));
+        setIndex((prev) => prev + 1);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(() => {
+        setDisplayed("");
+        setIndex(0);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [index, text]);
+
+  return (
+    <span className="font-semibold inline-flex items-center">
+      {displayed}
+      <span className="ml-1 w-0.5 h-4 bg-white animate-pulse inline-block"></span>
+    </span>
+  );
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -44,10 +72,26 @@ const LoginPage = () => {
       const SCRIPT_URL =
         "https://script.google.com/macros/s/AKfycbyAy98t3XAyRP3pFE7XOoDiTDU3Yc9WOIFayRXELW2XnUAzl7yE9bnO94GvZV0wJkH_/exec";
 
-      try {
-        setIsDataLoading(true);
+      // 1. Try to load from cache first for instant UI response
+      const cachedDataStr = localStorage.getItem("masterDataCache");
+      let hasCache = false;
+      if (cachedDataStr) {
+        try {
+          const cachedData = JSON.parse(cachedDataStr);
+          setMasterData(cachedData);
+          setIsDataLoading(false); // Enable login button immediately
+          hasCache = true;
+        } catch (e) {
+          console.error("Failed to parse cache", e);
+        }
+      }
 
-        // Fetch data using Apps Script Web App to avoid CORS issues
+      try {
+        if (!hasCache) {
+          setIsDataLoading(true); // Only show spinner if no cache exists
+        }
+
+        // Fetch data using Apps Script Web App to avoid CORS issues (Background update)
         const response = await fetch(`${SCRIPT_URL}?action=fetch&sheet=master`);
         const data = await response.json();
 
@@ -58,13 +102,8 @@ const LoginPage = () => {
 
         // Process the data rows (skip header row if it exists)
         if (data.table && data.table.rows) {
-          //console.log("Raw sheet data:", data.table.rows);
-
-          // Start from index 1 to skip header row (adjust if needed)
           for (let i = 1; i < data.table.rows.length; i++) {
             const row = data.table.rows[i];
-
-            // Extract data from columns C, D, E (indices 2, 3, 4)
             const username = row.c[2]
               ? String(row.c[2].v || "")
                 .trim()
@@ -74,64 +113,50 @@ const LoginPage = () => {
             const role = row.c[4] ? String(row.c[4].v || "").trim() : "user";
             const email = row.c[5] ? String(row.c[5].v || "").trim() : "";
 
-            //console.log(`Processing row ${i}: username=${username}, password=${password}, role=${role}`);
-
-            // Only process if we have both username and password
             if (username && password && password.trim() !== "") {
-              // Check if the role is any kind of inactive status
-              if (isInactiveRole(role)) {
-                //console.log(`Skipping inactive user: ${username} with role: ${role}`);
-                continue; // Skip this user
-              }
-
-              // Store normalized role for comparison
+              if (isInactiveRole(role)) continue;
               const normalizedRole = role.toLowerCase();
-
-              // Store in our maps
               userCredentials[username] = password;
               userRoles[username] = normalizedRole;
               userEmails[username] = email;
-
-              //console.log(`Added credential for: ${username}, Role: ${normalizedRole}`);
             }
           }
         }
 
-        setMasterData({ userCredentials, userRoles, userEmails });
-        //console.log("Loaded credentials from master sheet:", Object.keys(userCredentials).length)
-        //console.log("Credentials map:", userCredentials)
-        //console.log("Roles map:", userRoles)
+        const newMasterData = { userCredentials, userRoles, userEmails };
+        
+        // Only update state if we didn't have cache, OR if we want to ensure latest state is there 
+        // (but updating state might be unnoticeable unless they typed a brand new password)
+        setMasterData(newMasterData);
+        
+        // Save to cache for next time
+        try { localStorage.setItem("masterDataCache", JSON.stringify(newMasterData)); } catch(e) { console.warn('Cache full'); }
 
-        // Debug - check admin roles specifically
-        const adminUsers = Object.entries(userRoles)
-          .filter(([, role]) => role === "admin")
-          .map(([username]) => username);
-        //console.log("Admin users found:", adminUsers);
       } catch (error) {
         console.error("Error Fetching Master Data:", error);
+        
+        if (!hasCache) {
+          // Fallback only if we have NO cache
+          try {
+            const fallbackResponse = await fetch(SCRIPT_URL, {
+              method: "GET",
+            });
 
-        // Fallback: Try the alternative method using your Apps Script
-        try {
-          //console.log("Trying alternative method...");
-          const fallbackResponse = await fetch(SCRIPT_URL, {
-            method: "GET",
-          });
-
-          if (fallbackResponse.ok) {
-            //console.log("Apps Script is accessible, but getMasterData action needs to be implemented");
-            showToast(
-              "Unable to load user data. Please contact administrator.",
-              "error"
-            );
+            if (fallbackResponse.ok) {
+              showToast(
+                "Unable to load user data. Please contact administrator.",
+                "error"
+              );
+            }
+          } catch (fallbackError) {
+            console.error("Fallback also failed:", fallbackError);
           }
-        } catch (fallbackError) {
-          console.error("Fallback also failed:", fallbackError);
-        }
 
-        showToast(
-          `Network error: ${error.message}. Please try again later.`,
-          "error"
-        );
+          showToast(
+            `Network error: ${error.message}. Please try again later.`,
+            "error"
+          );
+        }
       } finally {
         setIsDataLoading(false);
       }
@@ -329,148 +354,171 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="w-full max-w-md shadow-lg border border-blue-200 rounded-lg bg-white">
-        <div className="space-y-1 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-t-lg">
-          <div className="flex items-center justify-center mb-2">
-            <i className="fas fa-clipboard-list h-8 w-8 text-blue-600 mr-2"></i>
-            <h2 className="text-2xl font-bold text-blue-700">
-              Checklist & Delegation
-            </h2>
-          </div>
-          <p className="text-center text-blue-600">
-            Login to access your tasks and delegations
-          </p>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 font-sans">
+      {/* Left/Top Side - Image and Branding */}
+      <div className="relative w-full md:w-5/12 lg:w-1/2 min-h-[35vh] md:min-h-screen flex flex-col justify-center items-center overflow-hidden bg-purple-900">
+        <div className="absolute inset-0 z-0">
+          <img src="/login-bg.png" alt="Abstract Background" className="w-full h-full object-cover opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/60 to-blue-900/80 mix-blend-multiply"></div>
         </div>
+        
+        <div className="relative z-10 text-center text-white px-6 py-10 md:px-12 w-full max-w-lg mx-4 md:mx-0 rounded-3xl backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
+          <div className="mx-auto w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-6 shadow-inner backdrop-blur-xl border border-white/30">
+            <i className="fas fa-clipboard-check text-4xl text-white"></i>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 drop-shadow-md">
+            TaskMaster
+          </h1>
+          <p className="text-lg md:text-xl text-purple-100 font-light tracking-wide mb-8">
+            Checklist & Delegation System
+          </p>
+          
+          <div className="pt-6 border-t border-white/20 inline-block px-8">
+            <TypingText text="DEVELOPED BY DEEPAK SAHU" />
+          </div>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="username"
-              className="flex items-center text-blue-700"
-            >
-              <i className="fas fa-user h-4 w-4 mr-2"></i>
-              Username
-            </label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="Enter your username"
-              required
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Right/Bottom Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-gray-50 relative overflow-hidden">
+        {/* Subtle decorative blobs for right side */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        
+        <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-[2rem] shadow-xl border border-gray-100 relative z-10">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Welcome Back</h2>
+            <p className="text-gray-500 mt-3 text-sm">Please enter your credentials to access your account</p>
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="flex items-center text-blue-700"
-            >
-              <i className="fas fa-key h-4 w-4 mr-2"></i>
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                type={visible ? "text" : "password"}
-                placeholder="Enter your password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-blue-700"
-              >
-                {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-semibold text-gray-700 block">
+                Username
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                  <i className="fas fa-user"></i>
+                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 focus:bg-white transition-all duration-300"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 -mx-4 -mb-4 mt-4 rounded-b-lg">
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-semibold text-gray-700 block">
+                Password
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                  <i className="fas fa-lock"></i>
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type={visible ? "text" : "password"}
+                  placeholder="Enter your password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-12 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 focus:bg-white transition-all duration-300"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-purple-600 transition-colors bg-transparent border-none outline-none focus:outline-none shadow-none"
+                  style={{ border: 'none', background: 'transparent' }}
+                >
+                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
-              className="w-full gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="w-full mt-8 py-3.5 px-4 gradient-bg text-white rounded-xl font-semibold tracking-wide shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:-translate-y-0.5 border-none outline-none"
+              style={{ border: 'none' }}
               disabled={isLoginLoading || isDataLoading}
             >
-              {isLoginLoading
-                ? "Logging in..."
-                : isDataLoading
-                  ? "Loading..."
-                  : "Login"}
+              {isLoginLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Logging in...
+                </span>
+              ) : isDataLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading Data...
+                </span>
+              ) : (
+                "Sign In"
+              )}
             </button>
-          </div>
-        </form>
-        <div className="fixed left-0 right-0 bottom-0 py-1 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center text-sm shadow-md z-10">
-          <a
-            href="https://www.botivate.in/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            Powered by-<span className="font-semibold">Botivate</span>
-          </a>
+          </form>
         </div>
       </div>
 
       {/* Toast Notification */}
       {toast.show && (
-        <div
-          className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${toast.type === "success"
-            ? "bg-green-100 text-green-800 border-l-4 border-green-500"
-            : "bg-red-100 text-red-800 border-l-4 border-red-500"
-            }`}
-        >
-          {toast.message}
+        <div className="fixed top-6 right-6 z-50 animate-fade-in-down">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-sm border ${toast.type === "success"
+              ? "bg-green-50/90 border-green-200 text-green-800"
+              : "bg-red-50/90 border-red-200 text-red-800"
+            }`}>
+            {toast.type === "success" ? (
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-green-100 text-green-600">
+                <i className="fas fa-check"></i>
+              </div>
+            ) : (
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600">
+                <i className="fas fa-exclamation"></i>
+              </div>
+            )}
+            <p className="font-medium">{toast.message}</p>
+          </div>
         </div>
       )}
 
       {/* Success Popup Modal */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl transform transition-all duration-300 scale-100 opacity-100">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                <svg
-                  className="h-6 w-6 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h3 className="mt-3 text-lg font-medium text-gray-900">
-                Login Successful!
-              </h3>
-              <div className="mt-2 px-4 py-3">
-                <p className="text-xl text-gray-600">
-                  Welcome{" "}
-                  <span className="font-semibold text-blue-600">
-                    {loggedInUsername}
-                  </span>
-                  , you have successfully logged in.
-                </p>
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Redirecting to dashboard...
-                </p>
-              </div>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all duration-300 scale-100 opacity-100 text-center relative overflow-hidden">
+            {/* Decorative background glow */}
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-10 w-32 h-32 bg-green-400 rounded-full blur-3xl opacity-20"></div>
+            
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-50 border-4 border-green-100 mb-6 relative z-10">
+              <svg className="h-10 w-10 text-green-500 animate-bounce-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 relative z-10">
+              Login Successful!
+            </h3>
+            
+            <p className="text-gray-600 text-base mb-8 relative z-10">
+              Welcome back, <span className="font-bold text-green-600">{loggedInUsername}</span>! We're redirecting you to your dashboard.
+            </p>
+            
+            <div className="flex flex-col items-center justify-center relative z-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              <p className="text-xs text-gray-400 mt-3 font-medium uppercase tracking-widest">
+                Redirecting
+              </p>
             </div>
           </div>
         </div>
