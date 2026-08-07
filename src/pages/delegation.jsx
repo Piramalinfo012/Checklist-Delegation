@@ -1936,8 +1936,8 @@ function DelegationDataPage() {
                                   className="mt-1 block w-full border rounded-md px-2 py-1 text-sm border-gray-300 disabled:bg-gray-100"
                                 >
                                   <option value="">Select</option>
-                                  <option value="Done" />
-                                  <option value="Extend date" />
+                                  <option value="Done">Done</option>
+                                  <option value="Extend date">Extend date</option>
                                 </select>
                               </div>
 
@@ -2084,13 +2084,13 @@ function DelegationDataPage() {
                           New Deadline Date
                         </th>
                         <th
-                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${!accountData["col17"] ? "bg-blue-50" : ""
+                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] ${!accountData["col17"] ? "bg-blue-50" : ""
                             }`}
                         >
                           Status
                         </th>
                         <th
-                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${!accountData["col17"] ? "bg-indigo-50" : ""
+                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px] ${!accountData["col17"] ? "bg-indigo-50" : ""
                             }`}
                         >
                           Next Target Date
@@ -2212,7 +2212,7 @@ function DelegationDataPage() {
                                 </div>
                               </td>
                               <td
-                                className={`px-6 py-4 whitespace-nowrap ${!account["col17"] ? "bg-blue-50" : ""
+                                className={`px-6 py-4 whitespace-nowrap min-w-[140px] ${!account["col17"] ? "bg-blue-50" : ""
                                   }`}
                               >
                                 <select
@@ -2227,12 +2227,12 @@ function DelegationDataPage() {
                                   className="border border-gray-300 rounded-md px-2 py-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
                                   <option value="">Select</option>
-                                  <option value="Done" />
-                                  <option value="Extend date" />
+                                  <option value="Done">Done</option>
+                                  <option value="Extend date">Extend date</option>
                                 </select>
                               </td>
                               <td
-                                className={`px-6 py-4 whitespace-nowrap ${!account["col17"] ? "bg-indigo-50" : ""
+                                className={`px-6 py-4 whitespace-nowrap min-w-[160px] ${!account["col17"] ? "bg-indigo-50" : ""
                                   }`}
                               >
                                 <input
