@@ -11,7 +11,8 @@ import {
   Image,
   Camera,
   Image as ImageIcon,
-  Clipboard
+  Clipboard,
+  RefreshCw
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 
@@ -1362,6 +1363,15 @@ function DelegationDataPage() {
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 sm:flex-none sm:w-32 bg-white text-purple-700 border border-purple-200 py-2 px-4 rounded-md hover:bg-purple-50 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 text-sm font-medium flex items-center justify-center group shadow-sm"
+                title="Hard Refresh"
+              >
+                <RefreshCw className="h-4 w-4 mr-1 group-hover:animate-spin" />
+                <span>Refresh</span>
+              </button>
+
               <button
                 onClick={toggleHistory}
                 className="flex-1 sm:flex-none sm:w-44 gradient-bg py-2 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium flex items-center justify-center"

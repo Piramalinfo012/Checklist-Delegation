@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, memo } from "react"
-import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon, Clipboard } from "lucide-react"
+import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon, Clipboard, RefreshCw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 
 // Configuration object - Move all configurations here
@@ -1710,6 +1710,16 @@ function AccountDataPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+            {/* Refresh Button */}
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center justify-center py-2 px-4 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-sm text-sm font-medium w-full sm:min-w-[100px] sm:w-auto group"
+              title="Hard Refresh"
+            >
+              <RefreshCw className="h-4 w-4 mr-2 group-hover:animate-spin" />
+              Refresh
+            </button>
+
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
