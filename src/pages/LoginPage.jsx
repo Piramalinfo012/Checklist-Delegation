@@ -72,19 +72,33 @@ const LoginPage = () => {
     const fetchMasterData = async () => {
       const SCRIPT_URL =
         "https://script.google.com/macros/s/AKfycbyAy98t3XAyRP3pFE7XOoDiTDU3Yc9WOIFayRXELW2XnUAzl7yE9bnO94GvZV0wJkH_/exec";
+      const CACHE_TTL = 60 * 60 * 1000; // 1 Hour TTL
 
       // 1. Try to load from cache first for instant UI response
       const cachedDataStr = localStorage.getItem("masterDataCache");
+      const cachedTimeStr = localStorage.getItem("masterDataCacheTime");
       let hasCache = false;
+      let isCacheValid = false;
+
       if (cachedDataStr) {
         try {
           const cachedData = JSON.parse(cachedDataStr);
           setMasterData(cachedData);
           setIsDataLoading(false); // Enable login button immediately
           hasCache = true;
+
+          const cachedTime = Number(cachedTimeStr || 0);
+          if (cachedTime && Date.now() - cachedTime < CACHE_TTL) {
+            isCacheValid = true;
+          }
         } catch (e) {
           console.error("Failed to parse cache", e);
         }
+      }
+
+      // If cache is valid (within 1 hour), reuse cached data and avoid redundant API call
+      if (isCacheValid) {
+        return;
       }
 
       try {
@@ -92,7 +106,7 @@ const LoginPage = () => {
           setIsDataLoading(true); // Only show spinner if no cache exists
         }
 
-        // Fetch data using Apps Script Web App to avoid CORS issues (Background update)
+        // Fetch data using Apps Script Web App to avoid CORS issues
         const response = await fetch(`${SCRIPT_URL}?action=fetch&sheet=master`);
         const data = await response.json();
 
@@ -125,13 +139,15 @@ const LoginPage = () => {
         }
 
         const newMasterData = { userCredentials, userRoles, userEmails };
-        
-        // Only update state if we didn't have cache, OR if we want to ensure latest state is there 
-        // (but updating state might be unnoticeable unless they typed a brand new password)
         setMasterData(newMasterData);
         
-        // Save to cache for next time
-        try { localStorage.setItem("masterDataCache", JSON.stringify(newMasterData)); } catch(e) { console.warn('Cache full'); }
+        // Save to cache with timestamp for 1-hour refresh interval
+        try {
+          localStorage.setItem("masterDataCache", JSON.stringify(newMasterData));
+          localStorage.setItem("masterDataCacheTime", Date.now().toString());
+        } catch(e) {
+          console.warn('Cache full');
+        }
 
       } catch (error) {
         console.error("Error Fetching Master Data:", error);

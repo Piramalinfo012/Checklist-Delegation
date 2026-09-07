@@ -13,7 +13,6 @@ import "./index.css"
 import QuickTask from "./pages/QuickTask"
 
 import TrainingVideo from "./pages/TrainingVideo"
-import Calendar from "./pages/Calendar"
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const username = sessionStorage.getItem("username")
@@ -81,15 +80,6 @@ function App() {
           }
         />
 
-        <Route
-          path="/dashboard/calendar"
-          element={
-            <ProtectedRoute>
-              <Calendar />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Data routes */}
         <Route
           path="/dashboard/data/:category"
@@ -127,7 +117,6 @@ function App() {
         <Route parh="/admin/quick-task" element={<Navigate to="/dashboard/quick-task" replace />} />
         <Route path="/admin/assign-task" element={<Navigate to="/dashboard/assign-task" replace />} />
         <Route path="/admin/data/:category" element={<Navigate to="/dashboard/data/:category" replace />} />
-        <Route path="/admin/calendar" element={<Navigate to="/dashboard/calendar" replace />} />
 
         <Route path="/admin/traning-video" element={<Navigate to="/dashboard/traning-video" replace />} />
         <Route path="/user/*" element={<Navigate to="/dashboard/admin" replace />} />

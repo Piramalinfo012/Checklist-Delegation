@@ -557,34 +557,57 @@ export default function AssignTask() {
 
   // Add a function to get the last task ID from the specified sheet
   const getLastTaskId = async (sheetName) => {
+    const spreadsheetId = "1r3YHyjqv24gZXBI9IofAhodnlBuDTA3sgyzU_PNCaQg";
+    let lastTaskId = 0;
+
+    // 1. Try direct GViz API with cache-buster timestamp for 100% live max Task ID
     try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=fetch&sheet=${encodeURIComponent(sheetName)}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch sheet data: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.table || !data.table.rows || data.table.rows.length === 0) {
-        return 0; // Start from 1 if no tasks exist
-      }
-
-      // Get the last task ID from column B (index 1)
-      let lastTaskId = 0;
-      data.table.rows.forEach((row) => {
-        if (row.c && row.c[1] && row.c[1].v) {
-          const taskId = parseInt(row.c[1].v);
-          if (!isNaN(taskId) && taskId > lastTaskId) {
-            lastTaskId = taskId;
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`;
+      const response = await fetch(gvizUrl);
+      if (response.ok) {
+        const text = await response.text();
+        const jsonStart = text.indexOf('{');
+        const jsonEnd = text.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+          if (data?.table?.rows) {
+            data.table.rows.forEach((row) => {
+              if (row.c && row.c[1] && row.c[1].v !== null && row.c[1].v !== undefined) {
+                const taskId = parseInt(String(row.c[1].v).trim());
+                if (!isNaN(taskId) && taskId > lastTaskId) {
+                  lastTaskId = taskId;
+                }
+              }
+            });
+            if (lastTaskId > 0) return lastTaskId;
           }
         }
-      });
+      }
+    } catch (gvizError) {
+      console.warn("GViz max task ID fetch error:", gvizError);
+    }
 
-      return lastTaskId;
+    // 2. Fallback to Apps Script Web App
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=fetch&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.table?.rows) {
+          data.table.rows.forEach((row) => {
+            if (row.c && row.c[1] && row.c[1].v !== null && row.c[1].v !== undefined) {
+              const taskId = parseInt(String(row.c[1].v).trim());
+              if (!isNaN(taskId) && taskId > lastTaskId) {
+                lastTaskId = taskId;
+              }
+            }
+          });
+        }
+      }
     } catch (error) {
       console.error("Error fetching last task ID:", error);
-      return 0;
     }
+
+    return lastTaskId;
   };
 
   // UPDATED: Date formatting function to return DD/MM/YYYY format (for working days comparison)

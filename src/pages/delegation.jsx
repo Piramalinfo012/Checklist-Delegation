@@ -8,7 +8,10 @@ import {
   History,
   ArrowLeft,
   Edit,
-  Image
+  Image,
+  Camera,
+  Image as ImageIcon,
+  Clipboard
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 
@@ -1341,10 +1344,10 @@ function DelegationDataPage() {
               : CONFIG.PAGE_CONFIG.title}
           </h1>
 
-          <div className="flex space-x-4">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search
-                className="absolute left-3 top-7 transform -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 size={18}
               />
               <input
@@ -1354,38 +1357,41 @@ function DelegationDataPage() {
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-auto"
               />
             </div>
 
-            <button
-              onClick={toggleHistory}
-              className="w-52 gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              {showHistory ? (
-                <div className="flex items-center">
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>Back to Tasks</span>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <History className="h-4 w-4 mr-1" />
-                  <span>View History</span>
-                </div>
-              )}
-            </button>
-
-            {!showHistory && (
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
-                onClick={handleSubmit}
-                disabled={selectedItemsCount === 0 || isSubmitting}
-                className="w-52 gradient-bg py-3 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                onClick={toggleHistory}
+                className="flex-1 sm:flex-none sm:w-44 gradient-bg py-2 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium flex items-center justify-center"
               >
-                {isSubmitting
-                  ? "Processing..."
-                  : `Submit Selected (${selectedItemsCount})`}
+                {showHistory ? (
+                  <div className="flex items-center justify-center">
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    <span>Back to Tasks</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <History className="h-4 w-4 mr-1" />
+                    <span>View History</span>
+                  </div>
+                )}
               </button>
-            )}
+
+              {!showHistory && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={selectedItemsCount === 0 || isSubmitting}
+                  className="flex-1 sm:flex-none sm:w-52 gradient-bg py-2 px-4 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium flex items-center justify-center whitespace-nowrap"
+                >
+                  {isSubmitting
+                    ? "Processing..."
+                    : `Submit Selected (${selectedItemsCount})`}
+                </button>
+              )}
+            </div>
+
             {/* NEW: Admin Submit Button for History View */}
             {showHistory &&
               userRole === "admin" &&
@@ -1405,16 +1411,16 @@ function DelegationDataPage() {
           </div>
         </div>
 
-        <div className="w-full flex flex-wrap items-center gap-4 mt-4 mb-4">
+        <div className="w-full flex flex-wrap items-center gap-3 mt-4 mb-4">
           {/* Name Filter */}
-          <div className="flex items-center">
+          <div className="flex items-center w-full sm:w-auto">
             <input
               id="name-filter"
               list="name-options"
               placeholder="All Names..."
               value={nameFilter}
               onChange={(e) => setNameFilter(e.target.value)}
-              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
+              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm w-full sm:w-[180px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
               disabled={userRole !== "admin" && uniqueNames.length <= 1}
             />
             <datalist id="name-options">
@@ -1425,11 +1431,11 @@ function DelegationDataPage() {
           </div>
 
           {/* Date Filter */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center space-x-1 flex-1 sm:flex-none min-w-[140px]">
               <label
                 htmlFor="start-date"
-                className="text-sm font-semibold text-purple-700"
+                className="text-xs font-semibold text-purple-700 shrink-0"
               >
                 From:
               </label>
@@ -1440,13 +1446,13 @@ function DelegationDataPage() {
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, start: e.target.value }))
                 }
-                className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100"
+                className="bg-white border-2 border-purple-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100 w-full"
               />
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 flex-1 sm:flex-none min-w-[140px]">
               <label
                 htmlFor="end-date"
-                className="text-sm font-semibold text-purple-700"
+                className="text-xs font-semibold text-purple-700 shrink-0"
               >
                 To:
               </label>
@@ -1457,20 +1463,20 @@ function DelegationDataPage() {
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, end: e.target.value }))
                 }
-                className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100"
+                className="bg-white border-2 border-purple-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-md shadow-purple-100 w-full"
               />
             </div>
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center">
+          <div className="flex items-center w-full sm:w-auto">
             <input
               id="status-filter"
               list="status-options"
               placeholder="All Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm min-w-[160px] max-w-[200px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
+              className="bg-white border-2 border-purple-300 rounded-xl px-4 py-2 text-sm w-full sm:w-[180px] focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-[0_4px_10px_rgba(168,85,247,0.2)] transition-all cursor-text placeholder-purple-400"
             />
             <datalist id="status-options">
               <option value="">
@@ -1491,7 +1497,7 @@ function DelegationDataPage() {
                 setDateRange({ start: "", end: "" });
                 setStatusFilter("");
               }}
-              className="ml-auto flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200"
+              className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1861,164 +1867,8 @@ function DelegationDataPage() {
             </>
           ) : (
             <>
-              {/* Mobile Card View */}
-              <div className="block md:hidden space-y-4 px-4 py-4">
-                {filteredAccountData.length > 0 ? (
-                  filteredAccountData.map((account) => {
-                    const isSelected = selectedItems.has(account._id);
-                    return (
-                      <div
-                        key={account._id}
-                        className={`bg-white rounded-lg shadow-sm border ${isSelected ? "border-purple-500" : "border-gray-200"
-                          } ${isTaskDisabled(account["col20"], userRole)
-                            ? "opacity-50 bg-gray-50"
-                            : ""
-                          }`}
-                      >
-                        <div className="p-4 space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                checked={isSelected}
-                                onChange={(e) => handleCheckboxClick(e, account._id)}
-                                disabled={isTaskDisabled(account["col20"], userRole)}
-                              />
-                              <div className="flex flex-col">
-                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(account["col20"])}`}>
-                                  {account["col20"] || "—"}
-                                </span>
-                                <span className="text-xs text-gray-500 mt-1">ID: {account["col1"] || "—"}</span>
-                              </div>
-                            </div>
-                            <div className="text-sm text-gray-600">{formatDateForDisplay(account["col0"]) || "—"}</div>
-                          </div>
-
-                          <div>
-                            <div className="text-sm text-gray-900 font-medium">{account["col5"] || "—"}</div>
-                            <div className="text-xs text-gray-500 mt-1">Given By: {account["col3"] || "—"} • Name: {account["col4"] || "—"}</div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-xs text-gray-500">Old Deadline</div>
-                              <div className="text-sm text-gray-900">{formatDateForDisplay(account["col6"])}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-500">New Deadline</div>
-                              <div className="text-sm text-gray-900">{formatDateForDisplay(account["col10"])}</div>
-                            </div>
-                          </div>
-
-                          {isSelected && (
-                            <div className="pt-2 border-t border-gray-100 space-y-3">
-                              <div>
-                                <label className="text-xs text-gray-500">Remarks</label>
-                                <input
-                                  type="text"
-                                  placeholder="Enter remarks"
-                                  disabled={isTaskDisabled(account["col20"], userRole)}
-                                  value={remarksData[account._id] || ""}
-                                  onChange={(e) =>
-                                    setRemarksData((prev) => ({ ...prev, [account._id]: e.target.value }))
-                                  }
-                                  className="mt-1 block w-full border rounded-md px-2 py-1 text-sm border-gray-300 disabled:bg-gray-100"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="text-xs text-gray-500">Status</label>
-                                <select
-                                  disabled={isTaskDisabled(account["col20"], userRole)}
-                                  value={statusData[account._id] || ""}
-                                  onChange={(e) => handleStatusChange(account._id, e.target.value)}
-                                  className="mt-1 block w-full border rounded-md px-2 py-1 text-sm border-gray-300 disabled:bg-gray-100"
-                                >
-                                  <option value="">Select</option>
-                                  <option value="Done">Done</option>
-                                  <option value="Extend date">Extend date</option>
-                                </select>
-                              </div>
-
-                              {statusData[account._id] === "Extend date" && (
-                                <div>
-                                  <label className="text-xs text-gray-500">Next Target Date</label>
-                                  <input
-                                    type="date"
-                                    disabled={isTaskDisabled(account["col20"], userRole)}
-                                    value={nextTargetDate[account._id] || ""}
-                                    onChange={(e) => handleNextTargetDateChange(account._id, e.target.value)}
-                                    className="mt-1 block w-full border rounded-md px-2 py-1 text-sm border-gray-300 disabled:bg-gray-100"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                            <div>
-                              {account["col20"] === "Verify Pending" ? (
-                                <div className="flex items-center gap-2">
-                                  {account["col15"] ? (
-                                    <>
-                                      <a
-                                        href={account["col15"]}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <img
-                                          src={account["col15"]}
-                                          alt="Proof"
-                                          className="h-10 w-10 object-cover rounded-md"
-                                          onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src =
-                                              "https://placehold.co/40x40?text=IMG";
-                                          }}
-                                        />
-                                      </a>
-                                      <a
-                                        href={account["col15"]}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-purple-600 underline"
-                                      >
-                                        View
-                                      </a>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-gray-400">
-                                      No Proof
-                                    </span>
-                                  )}
-                                </div>
-                              ) : account.image ? (
-                                <div className="flex items-center gap-2">
-                                  <img src={typeof account.image === "string" ? account.image : URL.createObjectURL(account.image)} alt="Receipt" className="h-10 w-10 object-cover rounded-md" />
-                                  <div className="text-xs text-gray-600">{account.image instanceof File ? "Ready to upload" : <button className="text-purple-600" onClick={() => window.open(account.image, "_blank")}>View</button>}</div>
-                                </div>
-                              ) : (
-                                <label className={`flex items-center cursor-pointer text-xs text-purple-600 hover:text-purple-800`}>
-                                  <Upload className="h-4 w-4 mr-1" />
-                                  <span>{account["col9"]?.toUpperCase() === "YES" ? "Required Upload" : "Upload Image"}</span>
-                                  <input type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={(e) => handleImageUpload(account._id, e)} disabled={!isSelected || isTaskDisabled(account["col20"], userRole)} />
-                                </label>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500">{account["col2"] || "—"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-4 text-center text-gray-500">{searchTerm ? "No tasks matching your search" : "No pending tasks found"}</div>
-                )}
-              </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto sticky top-0 max-h-[calc(100vh-300px)] overflow-y-auto">
+              {/* Table View (Mobile & Desktop) */}
+              <div className="overflow-x-auto sticky top-0 max-h-[calc(100vh-300px)] overflow-y-auto">
                 <div className="min-w-full">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -2332,34 +2182,79 @@ function DelegationDataPage() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <label
-                                    className={`flex items-center cursor-pointer ${account["col9"]?.toUpperCase() === "YES"
-                                      ? "text-red-600 font-medium"
-                                      : "text-purple-600"
-                                      } hover:text-purple-800`}
-                                  >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    <span className="text-xs">
-                                      {account["col9"]?.toUpperCase() === "YES"
-                                        ? "Required Upload"
-                                        : "Upload Image"}
-                                      {account["col9"]?.toUpperCase() === "YES" && (
-                                        <span className="text-red-500 ml-1">*</span>
-                                      )}
-                                    </span>
-                                    <input
-                                      type="file"
-                                      className="hidden"
-                                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-                                      onChange={(e) =>
-                                        handleImageUpload(account._id, e)
-                                      }
-                                      disabled={
-                                        !isSelected ||
-                                        isTaskDisabled(account["col20"], userRole)
-                                      }
-                                    />
-                                  </label>
+                                  <div className="flex flex-col gap-1">
+                                    {account["col9"]?.toUpperCase() === "YES" && (
+                                      <span className="text-[10px] text-red-600 font-medium break-words">
+                                        Required Upload *
+                                      </span>
+                                    )}
+                                    <div className="flex gap-2">
+                                      <label
+                                        className={`flex flex-col items-center justify-center cursor-pointer p-1.5 rounded-md border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isTaskDisabled(account["col20"], userRole) || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+                                        title="Take Photo"
+                                      >
+                                        <Camera className="h-4 w-4 mb-0.5" />
+                                        <span className="text-[9px] font-medium">Camera</span>
+                                        <input
+                                          type="file"
+                                          className="hidden"
+                                          accept="image/*"
+                                          capture="environment"
+                                          onChange={(e) => handleImageUpload(account._id, e)}
+                                          disabled={!isSelected || isTaskDisabled(account["col20"], userRole)}
+                                        />
+                                      </label>
+                                      <label
+                                        className={`flex flex-col items-center justify-center cursor-pointer p-1.5 rounded-md border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isTaskDisabled(account["col20"], userRole) || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+                                        title="Choose from Gallery"
+                                      >
+                                        <ImageIcon className="h-4 w-4 mb-0.5" />
+                                        <span className="text-[9px] font-medium">Gallery</span>
+                                        <input
+                                          type="file"
+                                          className="hidden"
+                                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                                          onChange={(e) => handleImageUpload(account._id, e)}
+                                          disabled={!isSelected || isTaskDisabled(account["col20"], userRole)}
+                                        />
+                                      </label>
+                                      <button
+                                        type="button"
+                                        title="Paste screenshot from clipboard"
+                                        disabled={!isSelected || isTaskDisabled(account["col20"], userRole)}
+                                        onClick={async () => {
+                                          try {
+                                            if (!navigator.clipboard || !navigator.clipboard.read) {
+                                              alert("Clipboard paste is not supported in this browser. Please use Camera or Gallery.");
+                                              return;
+                                            }
+                                            const clipboardItems = await navigator.clipboard.read();
+                                            const files = [];
+                                            for (const clipItem of clipboardItems) {
+                                              const imageType = clipItem.types.find((t) => t.startsWith("image/"));
+                                              if (imageType) {
+                                                const blob = await clipItem.getType(imageType);
+                                                const ext = imageType.split("/")[1] || "png";
+                                                files.push(new File([blob], `screenshot_${Date.now()}.${ext}`, { type: imageType }));
+                                              }
+                                            }
+                                            if (files.length === 0) {
+                                              alert("No image found in clipboard. Take a screenshot first, then tap Paste.");
+                                              return;
+                                            }
+                                            handleImageUpload(account._id, { target: { files } });
+                                          } catch (err) {
+                                            console.error("Paste failed:", err);
+                                            alert("Could not paste image. Please allow clipboard access, or use Camera/Gallery.");
+                                          }
+                                        }}
+                                        className={`flex flex-col items-center justify-center cursor-pointer p-1.5 rounded-md border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors ${account["col9"]?.toUpperCase() === "YES" ? "text-red-600 border-red-200" : "text-purple-600"} ${isTaskDisabled(account["col20"], userRole) || !isSelected ? "opacity-50 pointer-events-none" : ""}`}
+                                      >
+                                        <Clipboard className="h-4 w-4 mb-0.5" />
+                                        <span className="text-[9px] font-medium">Paste</span>
+                                      </button>
+                                    </div>
+                                  </div>
                                 )}
                               </td>
                             </tr>
