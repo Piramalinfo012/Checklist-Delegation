@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, useCallback } from "react";
 import { format } from 'date-fns';
-import { Search, ChevronDown, Filter } from "lucide-react";
+import { Search, ChevronDown, Filter, RefreshCw } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import DelegationPage from "./delegation-data";
 
@@ -81,8 +81,22 @@ export default function QuickTask() {
       setError(null);
 
       // Background fetch
+      // Background fetch
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.WHATSAPP_SHEET}`);
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        const jsonStart = text.indexOf("{");
+        const jsonEnd = text.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          const jsonString = text.substring(jsonStart, jsonEnd + 1);
+          data = JSON.parse(jsonString);
+        } else {
+          throw new Error("Invalid JSON response from server");
+        }
+      }
 
       if (data?.table?.rows) {
         let foundUser = null;
@@ -202,10 +216,23 @@ export default function QuickTask() {
       let fetchedRows = [];
       let isGviz = false;
 
-      // Try Apps Script first
+      // Fetch via Apps Script
       try {
         const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.CHECKLIST_SHEET}`);
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          const jsonStart = text.indexOf("{");
+          const jsonEnd = text.lastIndexOf("}");
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const jsonString = text.substring(jsonStart, jsonEnd + 1);
+            data = JSON.parse(jsonString);
+          } else {
+            throw new Error("Invalid JSON response from server");
+          }
+        }
 
         if (data?.table?.rows && Array.isArray(data.table.rows) && data.table.rows.length > 1) {
           // Check if Apps Script returned Whatsapp or Master sheet by mistake
@@ -215,22 +242,13 @@ export default function QuickTask() {
           if (!isWhatsappData) {
             fetchedRows = data.table.rows;
           }
+        } else if (Array.isArray(data) && data.length > 1) {
+          fetchedRows = data.map((row) => ({ c: row.map((val) => ({ v: val })) }));
+        } else if (data.values && Array.isArray(data.values) && data.values.length > 1) {
+          fetchedRows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }));
         }
       } catch (err) {
-        console.warn("Apps Script fetch failed, falling back to GViz API:", err);
-      }
-
-      // Fallback to direct GViz API if Apps Script fetch didn't return valid Unique sheet data
-      if (fetchedRows.length === 0) {
-        const gvizUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Unique`;
-        const gvizRes = await fetch(gvizUrl);
-        const gvizText = await gvizRes.text();
-        const jsonStr = gvizText.substring(gvizText.indexOf('{'), gvizText.lastIndexOf('}') + 1);
-        const gvizData = JSON.parse(jsonStr);
-        if (gvizData?.table?.rows) {
-          fetchedRows = gvizData.table.rows;
-          isGviz = true;
-        }
+        console.error("Apps Script fetch failed:", err);
       }
 
       if (fetchedRows.length > 0) {
@@ -336,8 +354,22 @@ export default function QuickTask() {
       if (!hasCache) setDelegationLoading(true);
 
       // Background fetch
+      // Background fetch
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.DELEGATION_SHEET}`);
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        const jsonStart = text.indexOf("{");
+        const jsonEnd = text.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          const jsonString = text.substring(jsonStart, jsonEnd + 1);
+          data = JSON.parse(jsonString);
+        } else {
+          throw new Error("Invalid JSON response from server");
+        }
+      }
 
       if (data?.table?.rows) {
         const rows = data.table.rows.slice(1); // Skip header
@@ -543,12 +575,21 @@ export default function QuickTask() {
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
               <p className="text-sm text-gray-600 mb-4">{error}</p>
-              <button
-                onClick={() => window.location.href = '/login'}
-                className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
-              >
-                Go to Login
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full bg-white text-purple-600 border border-purple-200 px-4 py-2 rounded-md hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh Page
+                </button>
+                <button
+                  onClick={() => window.location.href = '/login'}
+                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
+                >
+                  Go to Login
+                </button>
+              </div>
             </div>
           </div>
         </div>
