@@ -1100,7 +1100,21 @@ function AccountDataPage() {
 
       const sortedMembers = Array.from(membersSet).sort()
       setMembersList(sortedMembers)
-      setAccountData(pendingAccounts)
+      // Preserve any image a user has locally attached but not submitted yet —
+      // a background refresh (15s poll) would otherwise overwrite accountData
+      // with fresh server data that has no idea about that local attachment,
+      // making the just-picked image silently disappear before submit.
+      setAccountData((prev) => {
+        const localImages = new Map()
+        prev.forEach((item) => {
+          if (item.image) localImages.set(item._id, item.image)
+        })
+        return localImages.size > 0
+          ? pendingAccounts.map((item) =>
+              localImages.has(item._id) ? { ...item, image: localImages.get(item._id) } : item
+            )
+          : pendingAccounts
+      })
       setHistoryData(historyRows)
       hasLoadedOnceRef.current = true
       try {
