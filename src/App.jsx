@@ -13,6 +13,12 @@ import "./index.css"
 import QuickTask from "./pages/QuickTask"
 
 import TrainingVideo from "./pages/TrainingVideo"
+import MaintenancePage from "./pages/MaintenancePage"
+
+// System-wide maintenance switch: when true, every logged-in route shows the
+// maintenance page instead of its normal content. Login still works. Flip
+// this back to false to restore normal access.
+const MAINTENANCE_MODE = true
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const username = sessionStorage.getItem("username")
@@ -24,6 +30,10 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to="/dashboard/admin" replace />
+  }
+
+  if (MAINTENANCE_MODE) {
+    return <MaintenancePage />
   }
 
   return children

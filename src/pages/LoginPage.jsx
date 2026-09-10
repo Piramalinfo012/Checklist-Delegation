@@ -319,11 +319,12 @@ const LoginPage = () => {
           // Show success popup
           setShowSuccessPopup(true);
 
-          // After 2 seconds, hide the success popup and show the "What's New" update popup.
-          // Navigation happens when the user closes the update popup (cross button).
+          // After 2 seconds, hide the success popup and go straight to the dashboard.
+          // The "What's New" update popup is disabled — this used to gate navigation
+          // behind the user closing it (setShowUpdatePopup(true)), so we navigate here instead.
           setTimeout(() => {
             setShowSuccessPopup(false);
-            setShowUpdatePopup(true);
+            navigate("/dashboard/admin");
           }, 2000);
 
           showToast(

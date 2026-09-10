@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo, memo } from "react"
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Edit, Camera, Image as ImageIcon, Clipboard, RefreshCw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 
@@ -342,6 +342,10 @@ function AccountDataPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [remarksData, setRemarksData] = useState({})
+  // Tracks whether a successful load has ever completed, so a failed
+  // background poll (see the 15s auto-refresh effect below) knows whether
+  // it's safe to keep showing already-loaded data instead of surfacing an error.
+  const hasLoadedOnceRef = useRef(false)
   const [historyData, setHistoryData] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [membersList, setMembersList] = useState([])
@@ -917,9 +921,12 @@ function AccountDataPage() {
     }
   }, [membersList, userRole, username])
 
-  const fetchSheetData = useCallback(async () => {
+  // isBackground=true is used by the 15s poll below: it refetches silently
+  // (no spinner) and, on failure, keeps whatever data is already on screen
+  // instead of blanking it out over a transient network hiccup.
+  const fetchSheetData = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true)
+      if (!isBackground) setLoading(true)
       const pendingAccounts = []
       const historyRows = []
       const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.SHEET_NAME}&action=fetch`)
@@ -1094,16 +1101,31 @@ function AccountDataPage() {
       setMembersList(Array.from(membersSet).sort())
       setAccountData(pendingAccounts)
       setHistoryData(historyRows)
-      setLoading(false)
+      hasLoadedOnceRef.current = true
+      if (!isBackground) setLoading(false)
     } catch (error) {
       console.error("Error fetching sheet data:", error)
-      setError("Failed to load account data: " + error.message)
-      setLoading(false)
+      // A silent background poll that fails (transient network/Apps Script
+      // hiccup) shouldn't blank out data that's already on screen — only
+      // surface the error if we have nothing loaded yet to fall back on.
+      if (!isBackground || !hasLoadedOnceRef.current) {
+        setError("Failed to load account data: " + error.message)
+      }
+      if (!isBackground) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchSheetData()
+  }, [fetchSheetData])
+
+  // Near-real-time refresh: silently re-fetch every 15s in the background so
+  // updates made elsewhere in the sheet show up here without a manual reload.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchSheetData(true)
+    }, 15000)
+    return () => clearInterval(intervalId)
   }, [fetchSheetData])
 
   // Checkbox handlers with better state management

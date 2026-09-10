@@ -17,8 +17,11 @@ const memoryCache = new Map();
 // request the same sheet at once — without this each of those hits the 15s network call.
 const inflight = new Map();
 // Throttles background revalidation so rapid navigation doesn't spawn a storm of network calls.
+// Kept in sync with the 15s auto-refresh poll used by pages like Delegation and Sales/Checklist
+// data — those pages call fetch() every 15s wanting near-real-time updates, so this must be <=
+// that interval or their polling would be silently throttled down to whatever this value is.
 const lastRevalidated = new Map();
-const REVALIDATE_INTERVAL_MS = 30000;
+const REVALIDATE_INTERVAL_MS = 15000;
 
 const makeJsonResponse = (text) => new Response(text, {
   status: 200,
@@ -63,8 +66,15 @@ const releaseSlot = () => {
 // payload), a request can stall for minutes with no error and no response — nothing ever
 // tells the browser to give up. Without a timeout, the page just sits on "Loading..." forever.
 // Aborting a stuck attempt after ATTEMPT_TIMEOUT_MS and trying again keeps the worst case
-// bounded to well under a minute instead of 3+ minutes of silence.
-const ATTEMPT_TIMEOUT_MS = 20000;
+// bounded instead of 3+ minutes of silence.
+//
+// IMPORTANT: this must be comfortably LONGER than the slowest legitimate Google Apps Script
+// response. Apps Script routinely takes 20-40s on a cold start, a large sheet, or when many
+// users hit the same deployment at once (the concurrency limiter above can also queue a request
+// behind others). A too-short timeout aborts the request just as valid data was about to arrive
+// and throws it away — surfacing as "AbortError: signal is aborted without reason" and an empty
+// screen. 45s leaves generous headroom so slow-but-valid responses complete instead of dying.
+const ATTEMPT_TIMEOUT_MS = 45000;
 
 const fetchWithTimeout = async (args, timeoutMs) => {
   // cache: 'no-store' forces every attempt to hit script.google.com/exec fresh instead of the

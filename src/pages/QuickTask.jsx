@@ -162,13 +162,14 @@ export default function QuickTask() {
     const user = currentUser || loggedInUsername;
     if (!user || userLoading) return;
 
+    let hasCache = false;
+
     try {
       const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 Hours TTL
       const cacheKey = `unique_tasks_live_v9_${user}`;
       const cacheTimeKey = `unique_tasks_live_time_v9_${user}`;
       const cachedDataStr = localStorage.getItem(cacheKey);
       const cachedTimeStr = localStorage.getItem(cacheTimeKey);
-      let hasCache = false;
       let isCacheValid = false;
 
       // Purge any stale cache versions
@@ -314,7 +315,13 @@ export default function QuickTask() {
       }
     } catch (err) {
       console.error("Checklist fetch error:", err);
-      setError(err.message || "Failed to load checklist data");
+      // If we already have (stale) cached tasks on screen, a failed background
+      // revalidation (e.g. a transient Apps Script/redirect hiccup) shouldn't wipe
+      // that working view into a hard error screen — just keep showing the cached
+      // data and let the next refresh try again.
+      if (!hasCache) {
+        setError(err.message || "Failed to load checklist data");
+      }
     } finally {
       setLoading(false);
     }

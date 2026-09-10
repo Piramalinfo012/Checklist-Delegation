@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   CheckCircle2,
   Upload,
@@ -61,6 +61,10 @@ function DelegationDataPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [remarksData, setRemarksData] = useState({});
+  // Tracks whether a successful load has ever completed, so a failed
+  // background poll (see the 15s auto-refresh effect below) knows whether
+  // it's safe to keep showing already-loaded data instead of surfacing an error.
+  const hasLoadedOnceRef = useRef(false);
   const [historyData, setHistoryData] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [statusData, setStatusData] = useState({});
@@ -580,10 +584,15 @@ function DelegationDataPage() {
   ]); // Added nameFilter dependency
   // Optimized data fetching with parallel requests
   // Optimized data fetching with parallel requests
-  const fetchSheetData = useCallback(async () => {
+  // isBackground=true is used by the 15s poll below: it refetches silently
+  // (no spinner) and, on failure, keeps whatever data is already on screen
+  // instead of blanking it out over a transient network hiccup.
+  const fetchSheetData = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!isBackground) {
+        setLoading(true);
+        setError(null);
+      }
 
       // Parallel fetch both sheets for better performance
       const [mainResponse, historyResponse] = await Promise.all([
@@ -750,11 +759,17 @@ function DelegationDataPage() {
 
       setAccountData(allDelegationData);
       setDelegationData(allDelegationData);
-      setLoading(false);
+      hasLoadedOnceRef.current = true;
+      if (!isBackground) setLoading(false);
     } catch (error) {
       console.error("Error fetching sheet data:", error);
-      setError("Failed to load account data: " + error.message);
-      setLoading(false);
+      // A silent background poll that fails (transient network/Apps Script
+      // hiccup) shouldn't blank out data that's already on screen — only
+      // surface the error if we have nothing loaded yet to fall back on.
+      if (!isBackground || !hasLoadedOnceRef.current) {
+        setError("Failed to load account data: " + error.message);
+      }
+      if (!isBackground) setLoading(false);
     }
   }, [
     formatDateToDDMMYYYY,
@@ -767,6 +782,15 @@ function DelegationDataPage() {
 
   useEffect(() => {
     fetchSheetData();
+  }, [fetchSheetData]);
+
+  // Near-real-time refresh: silently re-fetch every 15s in the background so
+  // updates made elsewhere in the sheet show up here without a manual reload.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchSheetData(true);
+    }, 15000);
+    return () => clearInterval(intervalId);
   }, [fetchSheetData]);
 
   const handleSelectItem = useCallback((id, isChecked) => {
