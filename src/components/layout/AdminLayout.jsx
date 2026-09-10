@@ -246,16 +246,23 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                 ) : (
                   <Link
                     to={route.href}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                      ? "bg-slate-800 text-white shadow-md"
+                    className={`relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors duration-200 ${route.active
+                      ? "text-white"
                       : "text-slate-600 hover:bg-white/60"
                       }`}
                   >
+                    {route.active && (
+                      <motion.div
+                        layoutId="sidebar-active-pill-desktop"
+                        className="absolute inset-0 rounded-xl bg-slate-800 shadow-md"
+                        transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      />
+                    )}
                     <route.icon
-                      className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400"
+                      className={`relative z-10 h-4 w-4 ${route.active ? "text-white" : "text-slate-400"
                         }`}
                     />
-                    {route.label}
+                    <span className="relative z-10">{route.label}</span>
                   </Link>
                 )}
               </li>
@@ -432,17 +439,24 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                     ) : (
                       <Link
                         to={route.href}
-                        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                          ? "bg-slate-800 text-white shadow-md"
+                        className={`relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors duration-200 ${route.active
+                          ? "text-white"
                           : "text-slate-600 hover:bg-white/60"
                           }`}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
+                        {route.active && (
+                          <motion.div
+                            layoutId="sidebar-active-pill-mobile"
+                            className="absolute inset-0 rounded-xl bg-slate-800 shadow-md"
+                            transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                          />
+                        )}
                         <route.icon
-                          className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400"
+                          className={`relative z-10 h-4 w-4 ${route.active ? "text-white" : "text-slate-400"
                             }`}
                         />
-                        {route.label}
+                        <span className="relative z-10">{route.label}</span>
                       </Link>
                     )}
                   </li>
@@ -571,7 +585,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
           */}
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, scale: 0.985 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.985 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
           <style>{`
             @keyframes shine-text {
               0% { background-position: 200% center; }

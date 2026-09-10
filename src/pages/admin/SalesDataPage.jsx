@@ -2439,6 +2439,7 @@ function AccountDataPage() {
 
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         Upload Image
+                        <span className="block normal-case text-[10px] font-normal text-gray-400">Max 10MB</span>
                       </th>
                     </tr>
                   </thead>

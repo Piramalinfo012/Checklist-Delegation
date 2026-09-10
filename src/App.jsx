@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { AnimatePresence } from "framer-motion"
 import LoginPage from "./pages/LoginPage"
 import AdminDashboard from "./pages/admin/Dashboard"
 import AdminAssignTask from "./pages/admin/AssignTask"
@@ -18,7 +19,7 @@ import MaintenancePage from "./pages/MaintenancePage"
 // System-wide maintenance switch: when true, every logged-in route shows the
 // maintenance page instead of its normal content. Login still works. Flip
 // this back to false to restore normal access.
-const MAINTENANCE_MODE = true
+const MAINTENANCE_MODE = false
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const username = sessionStorage.getItem("username")
@@ -39,11 +40,12 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children
 }
 
-function App() {
+function AppRoutes() {
+  const location = useLocation()
 
   return (
-    <Router>
-      <Routes>
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
         {/* Root redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -134,6 +136,14 @@ function App() {
         {/* Catch-all route to redirect unknown URLs to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard/admin" replace />} />
       </Routes>
+    </AnimatePresence>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <AppRoutes />
     </Router>
   )
 }

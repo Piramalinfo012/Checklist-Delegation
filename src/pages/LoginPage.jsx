@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -373,6 +373,33 @@ const LoginPage = () => {
     setVisible(!visible);
   };
 
+  // 3D tilt for the login card: rotates toward the cursor and moves a glass
+  // "sheen" highlight with it, giving the flat card real depth.
+  const cardRef = useRef(null);
+  const sheenRef = useRef(null);
+
+  const handleCardMouseMove = (e) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    const rotY = (px - 0.5) * 14;
+    const rotX = (0.5 - py) * 10;
+    card.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    if (sheenRef.current) {
+      sheenRef.current.style.background = `radial-gradient(circle at ${px * 100}% ${py * 100}%, rgba(255,255,255,0.55), transparent 45%)`;
+      sheenRef.current.style.opacity = "1";
+    }
+  };
+
+  const handleCardMouseLeave = () => {
+    const card = cardRef.current;
+    if (card) card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
+    if (sheenRef.current) sheenRef.current.style.opacity = "0";
+  };
+
   // Close the "What's New" popup and continue to the dashboard.
   const handleCloseUpdatePopup = () => {
     setShowUpdatePopup(false);
@@ -406,12 +433,44 @@ const LoginPage = () => {
       </div>
 
       {/* Right/Bottom Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-gray-50 relative overflow-hidden">
-        {/* Subtle decorative blobs for right side */}
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        
-        <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-[2rem] shadow-xl border border-gray-100 relative z-10">
+      <div
+        className="flex-1 flex items-center justify-center p-6 md:p-12 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #e8e0f0 0%, #d5cce0 25%, #c9c2d4 50%, #d0cad8 75%, #e2dce8 100%)" }}
+      >
+        {/* Soft glow centered behind the card, echoing the card's own 3D shadow */}
+        <div className="absolute inset-0 [background:radial-gradient(42%_42%_at_50%_50%,rgba(255,255,255,0.35),transparent_70%)]"></div>
+
+        {/* Decorative mesh blobs, toned to match the dashboard's lavender-grey theme */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob" style={{ background: "#c9c2d4" }}></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob" style={{ background: "#d5cce0", animationDelay: "2s" }}></div>
+        <div className="absolute top-1/3 left-1/4 w-72 h-72 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" style={{ background: "#e2dce8", animationDelay: "4s" }}></div>
+
+        {/* Running light border: a bright arc sweeps continuously around the card's edge */}
+        <div className="relative w-full max-w-md rounded-[2.05rem] p-[2px] overflow-hidden z-10">
+          <div
+            aria-hidden="true"
+            className="absolute -inset-full animate-[spin_3s_linear_infinite] motion-reduce:animate-none"
+            style={{
+              background:
+                "conic-gradient(from 0deg, transparent 0deg, transparent 260deg, #9333EA 285deg, #DB2777 300deg, #9333EA 315deg, transparent 340deg, transparent 360deg)",
+            }}
+          ></div>
+
+          <div
+            ref={cardRef}
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
+            className="relative w-full bg-white p-8 md:p-10 rounded-[2rem] border border-gray-100 transition-transform duration-200 ease-out will-change-transform"
+            style={{
+              boxShadow:
+                "0 2px 0 rgba(255,255,255,0.7) inset, 0 45px 80px -30px rgba(88,28,135,0.35), 0 18px 34px -16px rgba(219,39,119,0.25)",
+            }}
+          >
+          <div
+            ref={sheenRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-200 mix-blend-overlay"
+          ></div>
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Welcome Back</h2>
             <p className="text-gray-500 mt-3 text-sm">Please enter your credentials to access your account</p>
@@ -495,6 +554,7 @@ const LoginPage = () => {
               )}
             </button>
           </form>
+          </div>
         </div>
       </div>
 
@@ -521,30 +581,67 @@ const LoginPage = () => {
 
       {/* Success Popup Modal */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all duration-300 scale-100 opacity-100 text-center relative overflow-hidden">
-            {/* Decorative background glow */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-10 w-32 h-32 bg-green-400 rounded-full blur-3xl opacity-20"></div>
-            
-            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-50 border-4 border-green-100 mb-6 relative z-10">
-              <svg className="h-10 w-10 text-green-500 animate-bounce-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 relative z-10">
-              Login Successful!
-            </h3>
-            
-            <p className="text-gray-600 text-base mb-8 relative z-10">
-              Welcome back, <span className="font-bold text-green-600">{loggedInUsername}</span>! We're redirecting you to your dashboard.
-            </p>
-            
-            <div className="flex flex-col items-center justify-center relative z-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-              <p className="text-xs text-gray-400 mt-3 font-medium uppercase tracking-widest">
-                Redirecting
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-md animate-fade-in">
+          <style>{`
+            @keyframes successPop { 0% { opacity: 0; transform: scale(0.92) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+            @keyframes checkRing { 0% { box-shadow: 0 0 0 0 rgba(147,51,234,0.35); } 70% { box-shadow: 0 0 0 16px rgba(147,51,234,0); } 100% { box-shadow: 0 0 0 0 rgba(147,51,234,0); } }
+            @keyframes successBorderSpin { to { transform: rotate(360deg); } }
+          `}</style>
+
+          <div
+            className="relative max-w-sm w-full mx-4 rounded-[1.75rem] p-[2px] overflow-hidden"
+            style={{ animation: "successPop 0.45s cubic-bezier(0.22,1,0.36,1) both" }}
+          >
+            {/* Running light border, matching the sign-in card */}
+            <div
+              aria-hidden="true"
+              className="absolute -inset-full motion-reduce:animate-none"
+              style={{
+                background:
+                  "conic-gradient(from 0deg, transparent 0deg, transparent 260deg, #9333EA 285deg, #DB2777 300deg, #9333EA 315deg, transparent 340deg, transparent 360deg)",
+                animation: "successBorderSpin 3s linear infinite",
+              }}
+            ></div>
+
+            <div
+              className="relative bg-white rounded-[1.7rem] p-8 text-center overflow-hidden"
+              style={{
+                boxShadow:
+                  "0 2px 0 rgba(255,255,255,0.7) inset, 0 40px 70px -28px rgba(88,28,135,0.35), 0 16px 30px -14px rgba(219,39,119,0.25)",
+              }}
+            >
+              {/* Decorative background glow */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-10 w-40 h-40 bg-purple-400 rounded-full blur-3xl opacity-20"></div>
+
+              <div
+                className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-purple-50 to-pink-100 border-4 border-white mb-6 relative z-10"
+                style={{
+                  animation: "checkRing 2s ease-out infinite",
+                  boxShadow: "0 8px 20px -8px rgba(147,51,234,0.5)",
+                }}
+              >
+                <svg className="h-10 w-10 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 relative z-10 tracking-tight">
+                Login Successful!
+              </h3>
+
+              <p className="text-gray-600 text-base mb-8 relative z-10">
+                Welcome back, <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{loggedInUsername}</span>! We're redirecting you to your dashboard.
               </p>
+
+              <div className="flex flex-col items-center justify-center relative z-10">
+                <div className="relative h-9 w-9">
+                  <div className="absolute inset-0 rounded-full border-2 border-purple-100"></div>
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-600 border-r-pink-600 animate-spin"></div>
+                </div>
+                <p className="text-xs text-gray-400 mt-3 font-semibold uppercase tracking-[0.2em]">
+                  Redirecting
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -1984,6 +1984,7 @@ function DelegationDataPage() {
                             }`}
                         >
                           Upload Image
+                          <span className="block normal-case text-[10px] font-normal text-gray-400">Max 10MB</span>
                         </th>
                       </tr>
                       {loading && <LoadingBuffer />}
