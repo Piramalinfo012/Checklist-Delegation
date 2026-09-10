@@ -932,7 +932,7 @@ export default function AdminDashboard() {
       });
 
       // Update department data state
-      setDepartmentData({
+      const newDepartmentData = {
         allTasks: processedRows,
         staffMembers,
         totalTasks,
@@ -945,7 +945,11 @@ export default function AdminDashboard() {
         completedRatingOne,
         completedRatingTwo,
         completedRatingThreePlus
-      });
+      };
+      setDepartmentData(newDepartmentData);
+      try {
+        localStorage.setItem(`dashboard_page_cache_${dashboardType}`, JSON.stringify(newDepartmentData));
+      } catch (e) { /* ignore quota errors */ }
 
       // Success — clear any error indicator and cancel a pending retry, if one was scheduled.
       setDataLoadError(false);
@@ -968,6 +972,18 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    // Show cached data from the last visit instantly (no blank/zeroed dashboard
+    // flash) when switching tabs or navigating back, then quietly refresh it.
+    try {
+      const cached = localStorage.getItem(`dashboard_page_cache_${dashboardType}`);
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        if (parsedCache && Array.isArray(parsedCache.allTasks)) {
+          setDepartmentData(parsedCache);
+        }
+      }
+    } catch (e) { /* ignore corrupt cache */ }
+
     fetchDepartmentData();
     return () => {
       if (retryTimeoutRef.current) {
@@ -975,6 +991,15 @@ export default function AdminDashboard() {
         retryTimeoutRef.current = null;
       }
     };
+  }, [dashboardType]);
+
+  // Near-real-time refresh: silently re-fetch every 15s in the background so
+  // updates made elsewhere in the sheet show up here without a manual reload.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchDepartmentData();
+    }, 15000);
+    return () => clearInterval(intervalId);
   }, [dashboardType]);
 
   // When dashboard loads, set current date
