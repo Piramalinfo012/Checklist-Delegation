@@ -1098,10 +1098,17 @@ function AccountDataPage() {
         }
       })
 
-      setMembersList(Array.from(membersSet).sort())
+      const sortedMembers = Array.from(membersSet).sort()
+      setMembersList(sortedMembers)
       setAccountData(pendingAccounts)
       setHistoryData(historyRows)
       hasLoadedOnceRef.current = true
+      try {
+        localStorage.setItem(
+          "checklist_page_cache_v1",
+          JSON.stringify({ pendingAccounts, historyRows, sortedMembers })
+        )
+      } catch (e) { /* ignore quota errors */ }
       if (!isBackground) setLoading(false)
     } catch (error) {
       console.error("Error fetching sheet data:", error)
@@ -1116,7 +1123,24 @@ function AccountDataPage() {
   }, [])
 
   useEffect(() => {
-    fetchSheetData()
+    // Show cached data from the last visit instantly (no spinner flash) when
+    // navigating back to this page, then quietly refresh it in the background.
+    let cameFromCache = false
+    try {
+      const cached = localStorage.getItem("checklist_page_cache_v1")
+      if (cached) {
+        const parsedCache = JSON.parse(cached)
+        if (parsedCache && Array.isArray(parsedCache.pendingAccounts) && parsedCache.pendingAccounts.length > 0) {
+          setAccountData(parsedCache.pendingAccounts)
+          setHistoryData(parsedCache.historyRows || [])
+          setMembersList(parsedCache.sortedMembers || [])
+          setLoading(false)
+          hasLoadedOnceRef.current = true
+          cameFromCache = true
+        }
+      }
+    } catch (e) { /* ignore corrupt cache */ }
+    fetchSheetData(cameFromCache)
   }, [fetchSheetData])
 
   // Near-real-time refresh: silently re-fetch every 15s in the background so

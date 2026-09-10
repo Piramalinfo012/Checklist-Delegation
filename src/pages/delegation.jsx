@@ -760,6 +760,9 @@ function DelegationDataPage() {
       setAccountData(allDelegationData);
       setDelegationData(allDelegationData);
       hasLoadedOnceRef.current = true;
+      try {
+        localStorage.setItem("delegation_page_cache_v1", JSON.stringify(allDelegationData));
+      } catch (e) { /* ignore quota errors */ }
       if (!isBackground) setLoading(false);
     } catch (error) {
       console.error("Error fetching sheet data:", error);
@@ -781,7 +784,23 @@ function DelegationDataPage() {
   ]);
 
   useEffect(() => {
-    fetchSheetData();
+    // Show cached data from the last visit instantly (no spinner flash) when
+    // navigating back to this page, then quietly refresh it in the background.
+    let cameFromCache = false;
+    try {
+      const cached = localStorage.getItem("delegation_page_cache_v1");
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        if (Array.isArray(parsedCache) && parsedCache.length > 0) {
+          setAccountData(parsedCache);
+          setDelegationData(parsedCache);
+          setLoading(false);
+          hasLoadedOnceRef.current = true;
+          cameFromCache = true;
+        }
+      }
+    } catch (e) { /* ignore corrupt cache */ }
+    fetchSheetData(cameFromCache);
   }, [fetchSheetData]);
 
   // Near-real-time refresh: silently re-fetch every 15s in the background so

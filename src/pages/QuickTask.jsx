@@ -217,39 +217,51 @@ export default function QuickTask() {
       let fetchedRows = [];
       let isGviz = false;
 
-      // Fetch via Apps Script
-      try {
-        const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.CHECKLIST_SHEET}`);
-        const text = await response.text();
-        let data;
+      // Fetch via Apps Script — Google's exec redirect occasionally 404s on a
+      // transient hiccup. Retry a few times (with a short backoff) before
+      // giving up, since on a first-ever load (no cache to fall back on) a
+      // single failed attempt would otherwise show a hard "Access Denied".
+      const CHECKLIST_FETCH_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= CHECKLIST_FETCH_ATTEMPTS; attempt++) {
         try {
-          data = JSON.parse(text);
-        } catch (parseError) {
-          const jsonStart = text.indexOf("{");
-          const jsonEnd = text.lastIndexOf("}");
-          if (jsonStart !== -1 && jsonEnd !== -1) {
-            const jsonString = text.substring(jsonStart, jsonEnd + 1);
-            data = JSON.parse(jsonString);
-          } else {
-            throw new Error("Invalid JSON response from server");
+          const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=fetch&sheet=${CONFIG.CHECKLIST_SHEET}`);
+          const text = await response.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            const jsonStart = text.indexOf("{");
+            const jsonEnd = text.lastIndexOf("}");
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+              const jsonString = text.substring(jsonStart, jsonEnd + 1);
+              data = JSON.parse(jsonString);
+            } else {
+              throw new Error("Invalid JSON response from server");
+            }
           }
+
+          if (data?.table?.rows && Array.isArray(data.table.rows) && data.table.rows.length > 1) {
+            // Check if Apps Script returned Whatsapp or Master sheet by mistake
+            const firstRowCells = data.table.rows[0]?.c?.map(x => x?.v) || [];
+            const isWhatsappData = firstRowCells.includes('password') || firstRowCells.includes('Role');
+
+            if (!isWhatsappData) {
+              fetchedRows = data.table.rows;
+            }
+          } else if (Array.isArray(data) && data.length > 1) {
+            fetchedRows = data.map((row) => ({ c: row.map((val) => ({ v: val })) }));
+          } else if (data.values && Array.isArray(data.values) && data.values.length > 1) {
+            fetchedRows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }));
+          }
+
+          if (fetchedRows.length > 0) break;
+        } catch (err) {
+          console.error(`Apps Script fetch failed (attempt ${attempt}/${CHECKLIST_FETCH_ATTEMPTS}):`, err);
         }
 
-        if (data?.table?.rows && Array.isArray(data.table.rows) && data.table.rows.length > 1) {
-          // Check if Apps Script returned Whatsapp or Master sheet by mistake
-          const firstRowCells = data.table.rows[0]?.c?.map(x => x?.v) || [];
-          const isWhatsappData = firstRowCells.includes('password') || firstRowCells.includes('Role');
-          
-          if (!isWhatsappData) {
-            fetchedRows = data.table.rows;
-          }
-        } else if (Array.isArray(data) && data.length > 1) {
-          fetchedRows = data.map((row) => ({ c: row.map((val) => ({ v: val })) }));
-        } else if (data.values && Array.isArray(data.values) && data.values.length > 1) {
-          fetchedRows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }));
+        if (attempt < CHECKLIST_FETCH_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 700 * attempt));
         }
-      } catch (err) {
-        console.error("Apps Script fetch failed:", err);
       }
 
       if (fetchedRows.length > 0) {
