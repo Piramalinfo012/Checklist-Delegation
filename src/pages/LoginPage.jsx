@@ -315,11 +315,17 @@ const LoginPage = () => {
 
           // Clear previous user's specific cache to prevent data leakage
           try {
+            // Flush the global in-memory + app_cache_ sheet caches (main.jsx) so
+            // no previously-logged-in user's fetched sheet data survives into this
+            // session. The in-memory Map is not reachable via localStorage.
+            if (typeof window !== 'undefined' && typeof window.clearAllSheetCaches === 'function') {
+              window.clearAllSheetCaches();
+            }
             const keysToKeep = ['masterDataCache', 'masterDataCacheTime', 'theme'];
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
-              if (key && !keysToKeep.includes(key) && !key.startsWith('app_cache_')) {
+              if (key && !keysToKeep.includes(key)) {
                 keysToRemove.push(key);
               }
             }

@@ -23,6 +23,26 @@ const inflight = new Map();
 const lastRevalidated = new Map();
 const REVALIDATE_INTERVAL_MS = 15000;
 
+// Manual full flush of every sheet cache (in-memory + app_cache_ localStorage).
+// Auth flows call this on login so no previously-logged-in user's cached sheet
+// data can ever be served into the next user's session. The in-memory Map lives
+// as long as the tab is open (login navigates via react-router, it does NOT
+// reload the page), so clearing localStorage alone is not enough — this must run.
+const clearAllSheetCaches = () => {
+  memoryCache.clear();
+  inflight.clear();
+  lastRevalidated.clear();
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('app_cache_')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch (e) { /* ignore */ }
+};
+if (typeof window !== 'undefined') window.clearAllSheetCaches = clearAllSheetCaches;
+
 const makeJsonResponse = (text) => new Response(text, {
   status: 200,
   headers: new Headers({ 'Content-Type': 'application/json' })
