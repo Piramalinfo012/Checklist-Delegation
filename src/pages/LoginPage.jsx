@@ -313,6 +313,21 @@ const LoginPage = () => {
             //console.log("USER LOGIN - Setting restricted access");
           }
 
+          // Clear previous user's specific cache to prevent data leakage
+          try {
+            const keysToKeep = ['masterDataCache', 'masterDataCacheTime', 'theme'];
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && !keysToKeep.includes(key) && !key.startsWith('app_cache_')) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+          } catch(e) {
+            console.error("Failed to clear cache on login", e);
+          }
+
           // Log attendance to Google Sheet
           logAttendance(trimmedUsername, userRole);
 
