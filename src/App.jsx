@@ -16,10 +16,10 @@ import QuickTask from "./pages/QuickTask"
 import TrainingVideo from "./pages/TrainingVideo"
 import MaintenancePage from "./pages/MaintenancePage"
 
-// System-wide maintenance switch: when true, every logged-in route shows the
-// maintenance page instead of its normal content. Login still works. Flip
-// this back to false to restore normal access.
-const MAINTENANCE_MODE = false
+// System-wide migration notification switch: when true, every logged-in route shows the
+// stylish migration / upgrade notice page instead of old content.
+const MAINTENANCE_MODE = true
+
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const username = sessionStorage.getItem("username")
